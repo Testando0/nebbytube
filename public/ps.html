@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nebby</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'nebula-purple': '#8b5cf6',
+                        'nebula-dark': '#1a1a1a',
+                    },
+                    fontFamily: {
+                        'poppins': ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://i.pinimg.com/736x/d8/12/fa/d812fa89a04c9011ecafed61209d6a8a.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: white;
+            margin: 0;
+            padding-bottom: 80px;
+        }
+
+        .card {
+            transition: all 0.3s ease;
+            transform: translateY(0);
+            border: 1px solid #8b5cf6;
+            background: rgba(26, 26, 26, 0.9);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-download {
+            transition: all 0.3s ease;
+            background: linear-gradient(to right, #8b5cf6, #a78bfa);
+        }
+
+        .btn-download:hover {
+            background: linear-gradient(to right, #7c3aed, #9f67fa);
+        }
+
+        .btn-download-mp4 {
+            transition: all 0.3s ease;
+            background: linear-gradient(to right, #3b82f6, #60a5fa);
+        }
+
+        .btn-download-mp4:hover {
+            background: linear-gradient(to right, #2563eb, #4b8ffa);
+        }
+
+        .loader {
+            border-top-color: #8b5cf6;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+
+        @-webkit-keyframes spinner {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .duration-badge {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        .views-count::after {
+            content: ' visualizações';
+        }
+
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        @media (max-width: 640px) {
+            .views-count::after {
+                content: '';
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            footer {
+                padding: 0.5rem;
+            }
+            .download-buttons {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="bg-nebula-dark/80 border-b border-nebula-purple/30">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-col items-center">
+                <h1 class="text-4xl md:text-5xl font-bold text-center mb-2">Nebby</h1>
+                <p class="text-gray-400 text-sm md:text-base">Encontre músicas e vídeos no YouTube</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <section class="mb-12">
+            <div class="max-w-2xl mx-auto">
+                <div class="relative flex">
+                    <label for="searchInput" class="sr-only">Buscar músicas ou vídeos</label>
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Digite o termo de busca (ex: 'Naruto vs Pain')" 
+                        class="w-full px-4 py-3 rounded-l-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-nebula-purple"
+                    >
+                    <button 
+                        id="searchBtn" 
+                        class="px-6 py-3 bg-nebula-purple text-white font-semibold rounded-r-lg hover:bg-purple-600 transition duration-300 flex items-center justify-center"
+                    >
+                        <i class="fas fa-search mr-2"></i>
+                        Buscar
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="resultsSection">
+            <div id="statusMessage" class="text-center py-12 hidden">
+                <p class="text-gray-400">Digite um termo e clique em buscar para encontrar vídeos</p>
+            </div>
+            
+            <div id="loadingIndicator" class="hidden flex justify-center py-12">
+                <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+            </div>
+            
+            <div id="errorMessage" class="hidden text-center py-12">
+                <p class="text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i> <span id="errorText">Erro ao buscar vídeos. Tente novamente.</span></p>
+            </div>
+            
+            <div id="resultsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            
+            <div id="totalDuration" class="hidden mt-8 text-center text-gray-400"></div>
+        </section>
+    </main>
+
+    <footer class="bg-nebula-dark/80 border-t border-nebula-purple/30 py-6">
+        <div class="container mx-auto px-4 text-center text-gray-400 text-sm">
+            <p>© 2025 Nebby - <a href="https://kamuiapi.shop/" target="_blank" class="hover:text-nebula-purple transition duration-300">Afiliado ao Kamui-API</a></p>
+        </div>
+    </footer>
+
+    <script src="./script.js"></script>
+</body>
+</html>

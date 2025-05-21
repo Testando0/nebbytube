@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://i.pinimg.com/736x/88/36/8a/88368aa8a46ba1986e55cb8ad8f164f7.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    color: white;
+}
+
+.card {
+    transition: all 0.3s ease;
+    transform: translateY(0);
+    border: 1px solid #8b5cf6;
+    background: rgba(26, 26, 26, 0.9);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+}
+
+.btn-download {
+    transition: all 0.3s ease;
+    background: linear-gradient(to right, #8b5cf6, #a78bfa);
+}
+
+.btn-download:hover {
+    background: linear-gradient(to right, #7c3aed, #9f67fa);
+}
+
+.loader {
+    border-top-color: #8b5cf6;
+    -webkit-animation: spinner 1.5s linear infinite;
+    animation: spinner 1.5s linear infinite;
+}
+
+@-webkit-keyframes spinner {
+    0% { -webkit-transform: rotate(0deg); }
+    100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spinner {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.duration-badge {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.views-count::after {
+    content: ' visualizações';
+}
+
+@media (max-width: 640px) {
+    .views-count::after {
+        content: '';
+    }
+    h1 {
+        font-size: 2rem;
+    }
+}

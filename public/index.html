@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NebbyTube RGB</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: #0d0d1a;
+      font-family: 'Poppins', sans-serif;
+      color: #fff;
+    }
+
+    input::placeholder {
+      color: #bbb;
+    }
+
+    .rgb-border {
+      border: 2px solid;
+      border-image: linear-gradient(90deg, #ff00ff, #00ffff, #00ff00, #ff0000) 1;
+      animation: borderCycle 4s linear infinite;
+    }
+
+    @keyframes borderCycle {
+      0% { border-image-source: linear-gradient(90deg, #ff00ff, #00ffff, #00ff00, #ff0000); }
+      25% { border-image-source: linear-gradient(90deg, #00ffff, #00ff00, #ff0000, #ff00ff); }
+      50% { border-image-source: linear-gradient(90deg, #00ff00, #ff0000, #ff00ff, #00ffff); }
+      75% { border-image-source: linear-gradient(90deg, #ff0000, #ff00ff, #00ffff, #00ff00); }
+      100% { border-image-source: linear-gradient(90deg, #ff00ff, #00ffff, #00ff00, #ff0000); }
+    }
+
+    .rgb-text {
+      background: linear-gradient(90deg, #ff00ff, #00ffff, #00ff00, #ff0000);
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: textCycle 6s ease infinite;
+    }
+
+    @keyframes textCycle {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .rgb-glow {
+      background: linear-gradient(270deg, #ff00ff, #00ffff, #00ff00, #ff0000);
+      background-size: 400% 400%;
+      animation: glowCycle 6s ease infinite;
+      color: white;
+    }
+
+    @keyframes glowCycle {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .rgb-hover:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 15px #00ffff66, 0 0 25px #ff00ff66;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <header class="bg-black py-5 rgb-border">
+    <div class="max-w-6xl mx-auto px-4 flex justify-between items-center">
+      <h1 class="text-3xl font-bold rgb-text">NebbyTube RGB</h1>
+    </div>
+  </header>
+
+  <main class="flex-grow">
+    <section class="text-center py-12 px-4">
+      <h2 class="text-4xl font-bold rgb-text mb-3">Busque seu vídeo</h2>
+      <p class="text-gray-400 mb-6">Digite o nome de uma música ou vídeo do YouTube</p>
+      <div class="flex flex-col md:flex-row justify-center items-center gap-4 max-w-xl mx-auto">
+        <input id="search-input" type="text" placeholder="Ex: Imagine Dragons - Believer"
+               class="w-full px-5 py-3 rounded-lg bg-[#1a1a2e] text-white rgb-border focus:outline-none" />
+        <button id="search-button"
+                class="rgb-glow px-6 py-3 rounded-lg font-semibold shadow-lg rgb-hover transition">
+          BUSCAR
+        </button>
+      </div>
+
+      <!-- Botão adicional para abrir outra página -->
+            <div class="flex justify-center mt-6">
+        <button onclick="window.location.href='ps.html'"
+                class="rgb-glow px-6 py-3 rounded-lg font-semibold shadow-lg rgb-hover transition">
+         NEBBY DOWNLOADS
+        </button>
+      </div>
+      <div class="flex justify-center mt-6">
+        <button onclick="window.location.href='loja.html'"
+                class="rgb-glow px-6 py-3 rounded-lg font-semibold shadow-lg rgb-hover transition">
+         LOJINHA PASSE ELITE
+        </button>
+      </div>
+      <div class="flex justify-center mt-6">
+        <button onclick="window.location.href='upload.html'"
+                class="rgb-glow px-6 py-3 rounded-lg font-semibold shadow-lg rgb-hover transition">
+         IR PARA O SITE DE ANIME
+        </button>
+      </div>
+      <div class="flex justify-center mt-6">
+        <button onclick="window.location.href='site.html'"
+                class="rgb-glow px-6 py-3 rounded-lg font-semibold shadow-lg rgb-hover transition">
+         IR PARA O SITE DE API KEY
+        </button>
+      </div>
+    <div class="flex justify-center mt-6">
+        <button onclick="window.location.href='pagina.html'"
+                class="rgb-glow px-6 py-3 rounded-lg font-semibold shadow-lg rgb-hover transition">
+         IR PARA O GERADOR DE LINK
+        </button>
+      </div>
+    </section>
+
+    <section id="results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4 max-w-6xl mx-auto pb-20">
+    </section>
+
+    <section class="px-4 max-w-4xl mx-auto mb-20">
+      <h3 class="text-center text-3xl font-semibold mb-6 rgb-text">Reprodutor</h3>
+      <div id="youtube-player" class="w-full aspect-video rounded-2xl rgb-border bg-black shadow-xl"></div>
+    </section>
+  </main>
+
+  <footer class="bg-black text-center py-4 text-gray-400 text-sm rgb-border">
+    © 2025 ph.46m - Todos os direitos reservados.
+  </footer>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script>
+    let player;
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('youtube-player', {
+        height: '360',
+        width: '640',
+        videoId: '',
+        events: {
+          onReady: () => {},
+          onStateChange: () => {},
+        },
+      });
+    }
+
+    const searchInput = document.getElementById('search-input');
+    const searchButton = document.getElementById('search-button');
+    const resultsContainer = document.getElementById('results');
+
+    searchButton.addEventListener('click', () => {
+      const query = searchInput.value.trim();
+      if (!query) return alert('Digite algo para buscar!');
+      resultsContainer.innerHTML = `<p class="col-span-full text-center rgb-text">Buscando...</p>`;
+
+      fetch(`/api/search?query=${encodeURIComponent(query)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data.results || data.results.length === 0) {
+            resultsContainer.innerHTML = `<p class="col-span-full text-center text-red-500">Nenhum vídeo encontrado.</p>`;
+            return;
+          }
+
+          resultsContainer.innerHTML = '';
+          data.results.forEach((video) => {
+            const videoIdMatch = video.url.match(/v=([^&]+)/);
+            const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+            const card = document.createElement('div');
+            card.className = 'bg-[#1a1a2e] rgb-border rounded-xl p-4 shadow-lg flex flex-col items-center rgb-hover transition';
+
+            card.innerHTML = `
+              <img src="${video.thumbnail}" alt="${video.title}" class="rounded-md mb-3 cursor-pointer hover:opacity-90 transition" onclick="playVideo('${videoId}')" />
+              <h4 class="text-white font-semibold text-center mb-2">${video.title}</h4>
+              <button onclick="downloadMP3('${video.url}')"
+                      class="mt-2 rgb-glow px-4 py-2 rounded-md font-semibold rgb-hover transition">
+                Baixar MP3
+              </button>
+            `;
+            resultsContainer.appendChild(card);
+          });
+        })
+        .catch(() => {
+          resultsContainer.innerHTML = `<p class="col-span-full text-center text-red-400">Erro ao buscar vídeos.</p>`;
+        });
+    });
+
+    function playVideo(id) {
+      if (!id) return;
+      player.loadVideoById(id);
+    }
+
+    function downloadMP3(url) {
+      if (!url) return alert('URL inválida.');
+      fetch(`/api/download?url=${encodeURIComponent(url)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.downloadLink) {
+            window.open(data.downloadLink, '_blank');
+          } else {
+            alert('Download não disponível.');
+          }
+        })
+        .catch(() => alert('Erro ao gerar link de download.'));
+    }
+  </script>
+</body>
+</html>

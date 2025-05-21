@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kamui API - Portal</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      height: 100vh;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .rgb-border {
+      padding: 3px;
+      border-radius: 20px;
+      background: linear-gradient(45deg, red, orange, yellow, lime, cyan, blue, violet, red);
+      background-size: 400% 400%;
+      animation: rgb-border 10s linear infinite;
+    }
+
+    @keyframes rgb-border {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .container {
+      background: #111;
+      border-radius: 18px;
+      padding: 50px 40px;
+      text-align: center;
+      color: #fff;
+      box-shadow: 0 0 25px rgba(0, 255, 255, 0.1);
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      background: linear-gradient(to right, #0ff, #f0f);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p {
+      font-size: 1.1em;
+      margin-bottom: 30px;
+      color: #ccc;
+    }
+
+    button {
+      padding: 15px 30px;
+      font-size: 1.1em;
+      color: #fff;
+      background: linear-gradient(45deg, #00f, #0ff);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.4s ease;
+      box-shadow: 0 0 15px #0ff;
+    }
+
+    button:hover {
+      background: linear-gradient(45deg, #0ff, #00f);
+      box-shadow: 0 0 25px #0ff, 0 0 50px #0ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="rgb-border">
+    <div class="container">
+      <h1>Portal Kamui API</h1>
+      <p>Acesse agora o painel oficial da API Kamui com apenas um clique.</p>
+      <button onclick="abrirSite()">Entrar no Site</button>
+    </div>
+  </div>
+
+  <script>
+    function abrirSite() {
+      window.open('https://kamuiapi.shop', '_blank');
+    }
+  </script>
+</body>
+</html>

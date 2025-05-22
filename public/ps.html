@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nebby</title>
+    <title>ᴅʀᴏᴘᴢᴏɴᴇ - ᴇɴᴄᴏɴᴛʀᴇ ᴍᴜsɪᴄᴀs ᴇ ᴠɪᴅᴇᴏs</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+   <meta property="og:image" content="https://i.ibb.co/nq2tx1zs/1013500798.jpg">
+  <link rel="shortcut icon" href="https://i.ibb.co/nq2tx1zs/1013500798.jpg">
     <script>
         tailwind.config = {
             theme: {
@@ -26,13 +28,13 @@
 
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://i.pinimg.com/736x/d8/12/fa/d812fa89a04c9011ecafed61209d6a8a.jpg');
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://i.ibb.co/nq2tx1zs/1013500798.jpg');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
             color: white;
             margin: 0;
-            padding-bottom: 80px;
+            padding-bottom: 80px; /* Aumentado para evitar sobreposição com footer */
         }
 
         .card {
@@ -118,8 +120,11 @@
     <header class="bg-nebula-dark/80 border-b border-nebula-purple/30">
         <div class="container mx-auto px-4 py-6">
             <div class="flex flex-col items-center">
-                <h1 class="text-4xl md:text-5xl font-bold text-center mb-2">Nebby</h1>
-                <p class="text-gray-400 text-sm md:text-base">Encontre músicas e vídeos no YouTube</p>
+                <h1 class="text-4xl md:text-5xl font-bold text-center mb-2">
+                    <span class="text-white">ᴅʀᴏᴘ</span>
+                    <span class="text-nebula-purple">ᴢᴏɴᴇ</span>
+                </h1>
+                <p class="text-gray-400 text-sm md:text-base">𝙴𝚗𝚌𝚘𝚗𝚝𝚛𝚎 𝚖𝚞𝚜𝚒𝚌𝚊𝚜 𝚎 𝚟𝚒𝚍𝚎𝚘𝚜 𝚗𝚘 𝚈𝚘𝚞𝚃𝚞𝚋𝚎</p>
             </div>
         </div>
     </header>
@@ -128,11 +133,11 @@
         <section class="mb-12">
             <div class="max-w-2xl mx-auto">
                 <div class="relative flex">
-                    <label for="searchInput" class="sr-only">Buscar músicas ou vídeos</label>
+                    <label for="searchInput" class="sr-only">𝙱𝚞𝚜𝚌𝚊𝚛 𝚖𝚞𝚜𝚒𝚌𝚊𝚜 𝚘𝚞 𝚟𝚒𝚍𝚎𝚘𝚜</label>
                     <input 
                         type="text" 
                         id="searchInput" 
-                        placeholder="Digite o termo de busca (ex: 'Naruto vs Pain')" 
+                        placeholder="Digite o termo (ex: 'M𝚊𝚝𝚞𝚜𝚑𝚔𝚊 U𝚕𝚝𝚛𝚊𝚏𝚞𝚗𝚔')" 
                         class="w-full px-4 py-3 rounded-l-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-nebula-purple"
                     >
                     <button 
@@ -140,7 +145,7 @@
                         class="px-6 py-3 bg-nebula-purple text-white font-semibold rounded-r-lg hover:bg-purple-600 transition duration-300 flex items-center justify-center"
                     >
                         <i class="fas fa-search mr-2"></i>
-                        Buscar
+                        𝑩𝒖𝒔𝒄𝒂𝒓
                     </button>
                 </div>
             </div>
@@ -148,7 +153,7 @@
 
         <section id="resultsSection">
             <div id="statusMessage" class="text-center py-12 hidden">
-                <p class="text-gray-400">Digite um termo e clique em buscar para encontrar vídeos</p>
+                <p class="text-gray-400">ᵈᶦᵍᶦᵗᵉ ᵘᵐ ᵗᵉʳᵐᵒ ᵉ ᶜˡᶦᵠᵘᵉ ᵉᵐ ᵇᵘˢᶜᵃʳ ᵖᵃʳᵃ ᵉⁿᶜᵒⁿᵗʳᵃʳ ᵛᶦᵈᵉᵒˢ</p>
             </div>
             
             <div id="loadingIndicator" class="hidden flex justify-center py-12">
@@ -156,21 +161,30 @@
             </div>
             
             <div id="errorMessage" class="hidden text-center py-12">
-                <p class="text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i> <span id="errorText">Erro ao buscar vídeos. Tente novamente.</span></p>
+                <p class="text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i> <span id="errorText">Eʀʀᴏ ᴀᴏ ʙᴜsᴄᴀʀ ᴠɪᴅᴇᴏs. Tᴇɴᴛᴇ ɴᴏᴠᴀᴍᴇɴᴛᴇ.</span></p>
             </div>
             
             <div id="resultsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
             
             <div id="totalDuration" class="hidden mt-8 text-center text-gray-400"></div>
+<!-- Adicionando o reprodutor de vídeo -->
+<div id="video-player" class="mt-8 mb-12 max-w-4xl mx-auto hidden">
+    <h2 class="text-2xl font-semibold text-white mb-4">ᖇᕮᑭᖇOᗞᑌTOᖇ ᗞᕮ ᐯIᗞᕮO</h2>
+    <div class="relative" style="padding-bottom: 56.25%;">
+        <iframe id="youtube-player" class="absolute top-0 left-0 w-full h-full rounded-lg border border-nebula-purple" src="" frameborder="0" allowfullscreen></iframe>
+    </div>
+</div>
         </section>
     </main>
 
     <footer class="bg-nebula-dark/80 border-t border-nebula-purple/30 py-6">
         <div class="container mx-auto px-4 text-center text-gray-400 text-sm">
-            <p>© 2025 Nebby - <a href="https://kamuiapi.shop/" target="_blank" class="hover:text-nebula-purple transition duration-300">Afiliado ao Kamui-API</a></p>
+            <p>ᴅʀᴏᴘᴢᴏɴᴇ - <a href="https://kamuiapi.shop/" target="_blank" class="hover:text-nebula-purple transition duration-300"> 𝑨𝒇𝒊𝒍𝒊𝒂𝒅𝒐 𝒂𝒐 𝑲𝒂𝒎𝒖𝒊-𝑨𝑷𝑰</a></p>
         </div>
     </footer>
 
     <script src="./script.js"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7457319815340424"
+     crossorigin="anonymous"></script>
 </body>
 </html>

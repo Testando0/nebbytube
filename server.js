@@ -29,22 +29,29 @@ app.get('/api/search', async (req, res) => {
         const data = await response.json();
         console.log('Resposta da API de busca (NexFuture):', data); 
 
-        if (!data || !data.resultado) {
+        // --- MODIFICAÇÃO AQUI ---
+        // Verifica se 'data.resultado' existe, é um array e não está vazio
+        if (!data || !data.resultado || !Array.isArray(data.resultado) || data.resultado.length === 0) {
             return res.status(200).json({ results: [], message: 'Nenhum resultado encontrado para a sua busca.' });
         }
 
-        const videoResult = {
-            title: data.resultado.titulo,
-            id: data.resultado.id,
-            thumbnail: data.resultado.imagem,
-            channel: data.resultado.canal,
-            description: data.resultado.descricao,
-            views: data.resultado.views,
-            duration: data.resultado.duracao,
-            url: data.resultado.url, 
-        };
+        // Mapeia CADA item do array 'data.resultado' para o formato esperado
+        const videoResults = data.resultado.map(item => {
+            return {
+                title: item.titulo,
+                id: item.id,
+                thumbnail: item.imagem,
+                channel: item.canal,
+                description: item.descricao,
+                views: item.views,
+                duration: item.duracao,
+                url: item.url, 
+            };
+        });
 
-        res.json({ results: [videoResult] });
+        // Retorna a lista completa de resultados
+        res.json({ results: videoResults });
+        // --- FIM DA MODIFICAÇÃO ---
 
     } catch (error) {
         console.error('Erro na busca de músicas:', error.message);

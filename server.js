@@ -68,8 +68,7 @@ app.get('/api/download', async (req, res) => {
         return res.status(400).json({ error: 'Parâmetro "title" é obrigatório para nomear o arquivo.' });
     }
     
-    // *** MUDANÇA: 'url' agora é obrigatória ***
-    // A 'url' (do vídeo específico do YouTube) é necessária 
+    // 'url' (do vídeo específico do YouTube) é necessária 
     // para garantir o download do item correto.
     if (!url) {
         return res.status(400).json({ error: 'Parâmetro "url" (do vídeo do YouTube) é obrigatório.' });
@@ -81,7 +80,6 @@ app.get('/api/download', async (req, res) => {
     if (format === 'mp3') {
         // --- LÓGICA DO MP3 (Usa 'url') ---
         try {
-            // *** MUDANÇA PRINCIPAL ***
             // Passamos a 'url' do vídeo (vinda da pesquisa) para o parâmetro 'name'
             // da API kuromi. Isso garante que ela baixe o vídeo exato.
             const apiUrl = `https://kuromi-system-tech.onrender.com/api/play?name=${encodeURIComponent(url)}`;
@@ -106,11 +104,9 @@ app.get('/api/download', async (req, res) => {
     } else {
         // --- LÓGICA DO MP4 (Usa 'url') ---
         try {
-            // *** MUDANÇA PRINCIPAL ***
-            // Trocamos 'title' por 'url' aqui também.
-            // A API 'playvideo' agora recebe a URL exata do vídeo 
-            // que foi retornado pela API de pesquisa.
-            const apiUrl = `https://kuromi-system-tech.onrender.com/api/playvideo?name=${encodeURIComponent(url)}`;
+            // *** MUDANÇA REALIZADA AQUI ***
+            // A API agora é 'ytmp4' e o parâmetro é 'url'.
+            const apiUrl = `https://kuromi-system-tech.onrender.com/api/ytmp4?url=${encodeURIComponent(url)}`;
             
             // 1. Faz o fetch para a API de vídeo
             console.log(`Iniciando download MP4 (proxy) de: ${url}`);

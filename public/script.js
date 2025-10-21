@@ -149,19 +149,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 `;
                 
-                // Botões de download
+                // Botões de download (MP3 e MP4)
                 // Usa data-video-title para o /api/download
                 const downloadHtml = `
                     <div class="px-4 pb-4">
-                        <div class="download-buttons">
+                        <div class="download-buttons flex flex-col gap-2">
                             <button 
-                                class="btn-download w-full py-2 text-white rounded-lg font-medium flex items-center justify-center"
+                                class="btn-download download-button w-full py-2 text-white rounded-lg font-medium flex items-center justify-center"
                                 data-video-title="${video.title}"
                                 data-format="mp3"
                                 aria-label="Baixar MP3 de ${video.title}"
                             >
                                 <i class="fas fa-download mr-2"></i>
                                 Baixar MP3
+                            </button>
+                            <button 
+                                class="btn-download-mp4 download-button w-full py-2 text-white rounded-lg font-medium flex items-center justify-center"
+                                data-video-title="${video.title}"
+                                data-format="mp4"
+                                aria-label="Baixar MP4 de ${video.title}"
+                            >
+                                <i class="fas fa-video mr-2"></i>
+                                Baixar MP4
                             </button>
                         </div>
                         <div class="download-error text-red-400 text-sm mt-2 hidden"></div>
@@ -183,31 +192,34 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Baixar arquivo (MP3)
+    // Baixar arquivo (MP3 ou MP4)
     // Esta função chama o /api/download do seu server.js
-    async function downloadFile(videoTitle, card, format) {
-        if (format !== 'mp3') {
+    async function downloadFile(videoTitle, downloadBtn, format) {
+        // 'downloadBtn' é o elemento do botão que foi clicado
+        
+        if (format !== 'mp3' && format !== 'mp4') {
             console.error('Formato de download não suportado:', format);
             return;
         }
 
-        const downloadBtn = card.querySelector('.btn-download');
+        const card = downloadBtn.closest('.card');
         const errorDiv = card.querySelector('.download-error');
         const originalText = downloadBtn.innerHTML;
+        
         downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Iniciando...';
         downloadBtn.disabled = true;
         errorDiv.classList.add('hidden');
         
         try {
-            // O endpoint /api/download espera um 'title'
-            const endpoint = `/api/download?title=${encodeURIComponent(videoTitle)}`;
+            // O endpoint /api/download espera 'title' e 'format'
+            const endpoint = `/api/download?title=${encodeURIComponent(videoTitle)}&format=${encodeURIComponent(format)}`;
             
             // Cria um link temporário
             const a = document.createElement('a');
             a.href = endpoint;
             
-            // O server.js já define um 'filename', mas podemos sugerir um
-            a.download = `${videoTitle.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`;
+            // Define o nome do arquivo com a extensão correta
+            a.download = `${videoTitle.replace(/[^a-zA-Z0-9]/g, '_')}.${format}`;
             a.style.display = 'none';
             
             // Adiciona, clica e remove o link
@@ -251,14 +263,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Delegar eventos de clique no container de resultados
     resultsContainer.addEventListener('click', (e) => {
-        // Evento de Download
-        const button = e.target.closest('.btn-download');
+        // Evento de Download (MP3 ou MP4)
+        const button = e.target.closest('.download-button'); // Seletor comum
         if (button) {
             const videoTitle = button.getAttribute('data-video-title');
             const format = button.getAttribute('data-format');
-            const card = button.closest('.card');
             if (videoTitle && format) {
-                downloadFile(videoTitle, card, format);
+                downloadFile(videoTitle, button, format); // Passa o próprio botão
             }
             return; // Impede que o clique no botão ative o clique na thumbnail
         }

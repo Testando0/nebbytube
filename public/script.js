@@ -11,10 +11,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const videoPlayerContainer = document.getElementById('video-player');
     const youtubePlayer = document.getElementById('youtube-player');
 
-    // --- Endereços das APIs ---
-    const SEARCH_API = 'https://kuromi-system-tech.onrender.com/api/pesquisayt?query=';
-    const DOWNLOAD_AUDIO_API = 'https://api.vreden.my.id/api/v1/download/play/audio?query=';
-    const DOWNLOAD_VIDEO_API = 'https://api.vreden.my.id/api/v1/download/play/video?query=';
+    // --- Endereços das NOVAS APIs (Funcionais) ---
+    // Esta API (api.ytb.re) é um wrapper público que facilita a busca e o download
+    const SEARCH_API = 'https://api.ytb.re/search?q=';
+    const DOWNLOAD_AUDIO_API = 'https://api.ytb.re/dl?type=mp3&id='; // Precisa do ID do vídeo
+    const DOWNLOAD_VIDEO_API = 'https://api.ytb.re/dl?type=mp4&id='; // Precisa do ID do vídeo
     
     // Mostrar mensagem inicial
     statusMessage.classList.remove('hidden');
@@ -22,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Funções Principais ---
 
     /**
-     * Busca vídeos usando a API de pesquisa
+     * Busca vídeos usando a nova API de pesquisa
      */
     async function searchVideos(query) {
         searchBtn.disabled = true;
@@ -31,8 +32,8 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             // Limpar UI
             resultsContainer.innerHTML = '';
-            if (youtubePlayer) youtubePlayer.src = ''; // Limpar iframe
-            if (videoPlayerContainer) videoPlayerContainer.classList.add('hidden'); // Esconder player
+            if (youtubePlayer) youtubePlayer.src = '';
+            if (videoPlayerContainer) videoPlayerContainer.classList.add('hidden');
             totalDuration.classList.add('hidden');
             loadingIndicator.classList.remove('hidden');
             statusMessage.classList.add('hidden');
@@ -40,14 +41,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Fazer requisição à API de busca
             const response = await fetch(`${SEARCH_API}${encodeURIComponent(query)}`);
-            const data = await response.json();
+            const data = await response.json(); // Esta API retorna um array direto
             
             if (!response.ok) {
-                throw new Error(data.error || 'Erro ao buscar vídeos.');
+                throw new Error(data.message || 'Erro ao buscar vídeos.');
             }
 
-            // Usar 'formattedVideos' como a fonte dos resultados
-            const videos = data.formattedVideos || [];
+            const videos = data || []; // Os resultados estão no array principal
             
             if (videos.length === 0) {
                 statusMessage.classList.remove('hidden');
@@ -62,13 +62,22 @@ document.addEventListener('DOMContentLoaded', function() {
             videos.forEach(video => {
                 const card = document.createElement('div');
                 card.className = 'card bg-gray-800 rounded-lg overflow-hidden shadow-lg';
-                
+
+                // A nova API fornece 'id', 'title', 'channel_name', 'views', 'duration'
+                const videoId = video.id;
+                const videoTitle = video.title;
+                const videoThumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`; // Thumbnail de alta qualidade
+                const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+                const videoChannel = video.channel_name;
+                const videoViews = video.views;
+                const videoDuration = video.duration;
+
                 // Thumbnail com duração
                 const thumbnailHtml = `
                     <div class="relative">
-                        <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-48 object-cover cursor-pointer video-thumbnail" data-video-url="${video.link}">
+                        <img src="${videoThumbnail}" alt="${videoTitle}" class="w-full h-48 object-cover cursor-pointer video-thumbnail" data-video-url="${videoUrl}">
                         <span class="duration-badge absolute bottom-2 right-2 text-white text-xs px-2 py-1 rounded">
-                            ${video.duration || 'N/A'}
+                            ${videoDuration || 'N/A'}
                         </span>
                     </div>
                 `;
@@ -76,40 +85,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Informações do vídeo
                 const infoHtml = `
                     <div class="p-4">
-                        <a href="${video.link}" target="_blank" class="text-white font-semibold hover:text-nebula-purple transition duration-300 line-clamp-2" title="${video.title}">
-                            ${video.title}
+                        <a href="${videoUrl}" target="_blank" class="text-white font-semibold hover:text-nebula-purple transition duration-300 line-clamp-2" title="${videoTitle}">
+                            ${videoTitle}
                         </a>
                         <div class="flex items-center mt-2 text-gray-400 text-sm">
                             <span class="hover:text-white transition duration-300">
-                                ${video.channel || video.creator || 'Desconhecido'}
+                                ${videoChannel || 'Desconhecido'}
                             </span>
                         </div>
                         <div class="flex justify-between items-center mt-3 text-gray-400 text-xs">
-                            <span class="views-count"><i class="fas fa-eye mr-1"></i> ${formatNumber(video.views)}</span>
-                            <span><i class="fas fa-thumbs-up mr-1"></i> ${formatNumber(video.likes)}</span>
+                            <span class="views-count"><i class="fas fa-eye mr-1"></i> ${formatNumber(videoViews)}</span>
                         </div>
                     </div>
                 `;
                 
                 // Botões de download (MP3 e MP4)
-                // Usar 'data-video-title' para as APIs de download
+                // Usar 'data-video-id' para as novas APIs de download
                 const downloadHtml = `
                     <div class="px-4 pb-4">
                         <div class="download-buttons flex gap-2">
                             <button 
                                 class="btn-download w-full py-2 text-white rounded-lg font-medium flex items-center justify-center"
-                                data-video-title="${video.title}"
+                                data-video-id="${videoId}"
                                 data-format="mp3"
-                                aria-label="Baixar MP3 de ${video.title}"
+                                aria-label="Baixar MP3 de ${videoTitle}"
                             >
                                 <i class="fas fa-music mr-2"></i>
                                 Baixar MP3
                             </button>
                             <button 
                                 class="btn-download-mp4 w-full py-2 text-white rounded-lg font-medium flex items-center justify-center"
-                                data-video-title="${video.title}"
+                                data-video-id="${videoId}"
                                 data-format="mp4"
-                                aria-label="Baixar MP4 de ${video.title}"
+                                aria-label="Baixar MP4 de ${videoTitle}"
                             >
                                 <i class="fas fa-video mr-2"></i>
                                 Baixar MP4
@@ -136,10 +144,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     /**
      * Inicia o download de MP3 ou MP4
-     * As novas APIs esperam o TÍTULO (query), não a URL.
+     * As novas APIs esperam o ID do vídeo, não o título.
      * Elas redirecionam para o download, então apenas abrimos em nova aba.
      */
-    async function downloadFile(videoTitle, card, format) {
+    async function downloadFile(videoId, card, format) {
         const downloadBtn = card.querySelector(format === 'mp4' ? '.btn-download-mp4' : '.btn-download');
         const errorDiv = card.querySelector('.download-error');
         const originalText = downloadBtn.innerHTML;
@@ -149,15 +157,15 @@ document.addEventListener('DOMContentLoaded', function() {
         errorDiv.classList.add('hidden');
 
         try {
-            // Monta a URL da API de download correta
+            // Monta a URL da API de download correta com o ID
             const endpoint = format === 'mp4' 
-                ? `${DOWNLOAD_VIDEO_API}${encodeURIComponent(videoTitle)}`
-                : `${DOWNLOAD_AUDIO_API}${encodeURIComponent(videoTitle)}`;
+                ? `${DOWNLOAD_VIDEO_API}${videoId}`
+                : `${DOWNLOAD_AUDIO_API}${videoId}`;
             
             // Abre a URL em uma nova aba. O navegador cuidará do redirecionamento e do download.
             window.open(endpoint, '_blank');
             
-            // Feedback de sucesso (não podemos confirmar o download, apenas que a aba foi aberta)
+            // Feedback de sucesso
             downloadBtn.innerHTML = `<i class="fas fa-check mr-2"></i> Verifique...`;
             setTimeout(() => {
                 downloadBtn.innerHTML = originalText;
@@ -252,7 +260,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (durationText === '') { // Caso de menos de 1 minuto
-             durationText = `${totalSeconds % 60} segundo${(totalSeconds % 60) > 1 ? 's' : ''}`;
+             const seconds = totalSeconds % 60;
+             durationText = `${seconds} segundo${seconds > 1 ? 's' : ''}`;
         }
 
         if (durationText) {
@@ -296,12 +305,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clique no botão de download (MP3 ou MP4)
         const downloadButton = e.target.closest('.btn-download, .btn-download-mp4');
         if (downloadButton) {
-            // Pegar o 'data-video-title' em vez de 'data-video-url'
-            const videoTitle = downloadButton.getAttribute('data-video-title');
+            // Pegar o 'data-video-id' em vez de 'data-video-title'
+            const videoId = downloadButton.getAttribute('data-video-id');
             const format = downloadButton.getAttribute('data-format');
             const card = downloadButton.closest('.card');
-            if (videoTitle && format && card) {
-                downloadFile(videoTitle, card, format);
+            if (videoId && format && card) {
+                downloadFile(videoId, card, format);
             }
             return; // Importante para não disparar o clique da thumbnail
         }

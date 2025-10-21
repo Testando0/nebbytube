@@ -90,16 +90,17 @@ app.get('/api/download', async (req, res) => {
         }
 
     } else {
-        // --- LÓGICA DO MP4 (Usa 'url') ---
-        // *** ATUALIZADO: Implementado Proxy Stream (igual ao MP3) ***
+        // --- LÓGICA DO MP4 (Usa 'title') ---
+        // *** ATUALIZADO: Implementado Proxy Stream (igual à referência 'play_video') ***
         
-        // Validação específica para MP4
-        if (!url) {
-            return res.status(400).json({ error: 'Parâmetro "url" é obrigatório para o download de MP4.' });
-        }
+        // A validação de 'title' já foi feita acima.
         
         try {
-            const apiUrl = `http://speedhosting.cloud:2009/download/play-video?&url=${encodeURIComponent(url)}`;
+            // *** MUDANÇA PRINCIPAL ***
+            // Trocamos a API 'speedhosting' pela 'kuromi-system-tech'
+            // Trocamos o parâmetro 'url' pelo 'name' (usando a variável 'title')
+            // Esta URL agora é baseada na sua referência 'case 'play_video''
+            const apiUrl = `https://kuromi-system-tech.onrender.com/api/playvideo?name=${encodeURIComponent(title)}`;
             
             // 1. Faz o fetch para a API de vídeo
             const response = await fetch(apiUrl);

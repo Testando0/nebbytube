@@ -68,11 +68,13 @@ app.get('/api/download', async (req, res) => {
         return res.status(400).json({ error: 'Parâmetro "url" (do vídeo do YouTube) é obrigatório.' });
     }
     
-    const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.${format}`;
+    // Sanitiza o nome do arquivo
+    const filename = `${title.replace(/[^a-zA-Z0-9\s-_]/g, '_').replace(/\s+/g, '_')}.${format}`;
 
     
     if (format === 'mp3') {
         // --- LÓGICA DO MP3 (2 PASSOS: JSON -> STREAM) ---
+        // (Esta lógica permanece a mesma, pois parece correta)
         try {
             // PASSO 1: Chamar a API da NexFuture para obter o link direto de download
             const jsonApiUrl = `https://api.nexfuture.com.br/api/downloads/youtube/mp3/v3?url=${encodeURIComponent(url)}`;
@@ -87,7 +89,6 @@ app.get('/api/download', async (req, res) => {
 
             const data = await jsonResponse.json();
             
-            // Procura o link de download em locais comuns da resposta
             const downloadLink = data.downloadLink || data.resultado?.downloadLink || data.download?.downloadLink;
             
             if (!downloadLink) {
@@ -102,7 +103,6 @@ app.get('/api/download', async (req, res) => {
                 throw new Error(`Erro HTTP ${streamResponse.status} ao fazer fetch do link de download (MP3).`);
             }
 
-            // Faz o proxy do stream de áudio
             res.setHeader('Content-Type', 'audio/mpeg');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
             streamResponse.body.pipe(res);
@@ -113,44 +113,32 @@ app.get('/api/download', async (req, res) => {
         }
 
     } else {
-        // --- LÓGICA ATUALIZADA DO MP4 (2 PASSOS: JSON -> STREAM via NexFuture) ---
+        // --- LÓGICA CORRIGIDA DO MP4 (1 PASSO: DIRETO PARA STREAM) ---
+        // (Tratando a resposta da API de MP4 como stream direto)
         try {
-            // PASSO 1: Chamar a nova API da NexFuture para obter o link direto de download
-            const jsonApiUrl = `https://api.nexfuture.com.br/api/downloads/youtube/mp4?url=${encodeURIComponent(url)}`;
+            // PASSO 1: Chamar a API da NexFuture que retorna o stream de vídeo DIRETAMENTE
+            const directStreamApiUrl = `https://api.nexfuture.com.br/api/downloads/youtube/mp4?url=${encodeURIComponent(url)}`;
             
-            console.log(`Buscando link de download MP4 (NexFuture JSON) para: ${url}`);
-            const jsonResponse = await fetch(jsonApiUrl);
-
-            if (!jsonResponse.ok) {
-                const errorText = await jsonResponse.text();
-                throw new Error(`Erro HTTP ${jsonResponse.status} na API JSON (MP4): ${errorText.substring(0, 100)}`);
-            }
-
-            const data = await jsonResponse.json();
-            
-            // Procura o link de download (mesma lógica do MP3)
-            const downloadLink = data.downloadLink || data.resultado?.downloadLink || data.download?.downloadLink;
-            
-            if (!downloadLink) {
-                 throw new Error(`Link de download MP4 não encontrado na resposta da API. Resposta: ${JSON.stringify(data).substring(0, 100)}...`);
-            }
-
-            // PASSO 2: Fazer o fetch do link direto e proxy do stream
-            console.log(`Iniciando proxy MP4 do link direto: ${downloadLink}`);
-            const streamResponse = await fetch(downloadLink);
+            console.log(`Iniciando proxy MP4 direto da API: ${directStreamApiUrl}`);
+            const streamResponse = await fetch(directStreamApiUrl); // Faz o fetch do stream
 
             if (!streamResponse.ok) {
-                throw new Error(`Erro HTTP ${streamResponse.status} ao fazer fetch do link de download (MP4).`);
+                // Tenta ler o erro se a resposta não for OK
+                const errorText = await streamResponse.text(); 
+                throw new Error(`Erro HTTP ${streamResponse.status} ao fazer fetch direto do stream (MP4): ${errorText.substring(0, 150)}`);
             }
 
             // Faz o proxy do stream de vídeo
             res.setHeader('Content-Type', 'video/mp4');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-            streamResponse.body.pipe(res);
+            streamResponse.body.pipe(res); // Envia o stream direto para o cliente
 
         } catch (error) {
             console.error(`Erro no download MP4:`, error.message);
-            res.status(500).json({ error: error.message || `Erro ao gerar ou baixar o MP4.` });
+            // Evita enviar JSON se o stream já tiver sido iniciado, mas aqui é seguro
+            if (!res.headersSent) {
+                res.status(500).json({ error: error.message || `Erro ao gerar ou baixar o MP4.` });
+            }
         }
     }
 });

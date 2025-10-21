@@ -11,11 +11,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const videoPlayerContainer = document.getElementById('video-player');
     const youtubePlayer = document.getElementById('youtube-player');
 
-    // --- Endereços das NOVAS APIs (Funcionais) ---
-    // Esta API (api.ytb.re) é um wrapper público que facilita a busca e o download
-    const SEARCH_API = 'https://api.ytb.re/search?q=';
-    const DOWNLOAD_AUDIO_API = 'https://api.ytb.re/dl?type=mp3&id='; // Precisa do ID do vídeo
-    const DOWNLOAD_VIDEO_API = 'https://api.ytb.re/dl?type=mp4&id='; // Precisa do ID do vídeo
+    // --- Endereços das APIs ---
+    // API de Busca ATUALIZADA
+    const SEARCH_API = 'https://api.nexfuture.com.br/api/pesquisas/youtube?query=';
+    
+    // APIs de Download (ainda funcionam e serão mantidas)
+    const DOWNLOAD_AUDIO_API = 'https://api.ytb.re/dl?type=mp3&id='; // Precisa do ID
+    const DOWNLOAD_VIDEO_API = 'https://api.ytb.re/dl?type=mp4&id='; // Precisa do ID
     
     // Mostrar mensagem inicial
     statusMessage.classList.remove('hidden');
@@ -23,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Funções Principais ---
 
     /**
-     * Busca vídeos usando a nova API de pesquisa
+     * Busca vídeos usando a nova API de pesquisa (api.nexfuture.com.br)
      */
     async function searchVideos(query) {
         searchBtn.disabled = true;
@@ -41,36 +43,39 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Fazer requisição à API de busca
             const response = await fetch(`${SEARCH_API}${encodeURIComponent(query)}`);
-            const data = await response.json(); // Esta API retorna um array direto
+            const data = await response.json();
             
-            if (!response.ok) {
-                throw new Error(data.message || 'Erro ao buscar vídeos.');
-            }
-
-            const videos = data || []; // Os resultados estão no array principal
-            
-            if (videos.length === 0) {
+            // Verificar se a API retornou status 'true' e um resultado
+            if (!response.ok || !data.status || !data.resultado) {
+                let errorMsg = 'Nenhum vídeo encontrado.';
+                if (data.message) errorMsg = data.message; // Usar msg de erro da API se existir
+                if (!response.ok) errorMsg = 'Erro ao se conectar com a API de busca.';
+                
                 statusMessage.classList.remove('hidden');
-                statusMessage.innerHTML = `<p class="text-gray-400">Nenhum vídeo encontrado.</p>`;
+                statusMessage.innerHTML = `<p class="text-gray-400">${errorMsg}</p>`;
                 return;
             }
+
+            // A API retorna um objeto 'resultado', não um array.
+            // Colocamos esse objeto dentro de um array para o resto do código funcionar.
+            const videos = [data.resultado];
             
             // Mostrar duração total
             showTotalDuration(videos);
             
-            // Criar cards para cada vídeo
+            // Criar cards para cada vídeo (neste caso, apenas um)
             videos.forEach(video => {
                 const card = document.createElement('div');
                 card.className = 'card bg-gray-800 rounded-lg overflow-hidden shadow-lg';
 
-                // A nova API fornece 'id', 'title', 'channel_name', 'views', 'duration'
+                // Mapear os campos da nova API
                 const videoId = video.id;
-                const videoTitle = video.title;
-                const videoThumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`; // Thumbnail de alta qualidade
-                const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-                const videoChannel = video.channel_name;
+                const videoTitle = video.titulo;
+                const videoThumbnail = video.imagem; // API já fornece a imagem
+                const videoUrl = video.url;
+                const videoChannel = video.canal;
                 const videoViews = video.views;
-                const videoDuration = video.duration;
+                const videoDuration = video.duracao;
 
                 // Thumbnail com duração
                 const thumbnailHtml = `
@@ -100,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 
                 // Botões de download (MP3 e MP4)
-                // Usar 'data-video-id' para as novas APIs de download
+                // Usar 'data-video-id' que é necessário para as APIs de download
                 const downloadHtml = `
                     <div class="px-4 pb-4">
                         <div class="download-buttons flex gap-2">
@@ -144,8 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     /**
      * Inicia o download de MP3 ou MP4
-     * As novas APIs esperam o ID do vídeo, não o título.
-     * Elas redirecionam para o download, então apenas abrimos em nova aba.
+     * As APIs de download (api.ytb.re) esperam o ID do vídeo.
      */
     async function downloadFile(videoId, card, format) {
         const downloadBtn = card.querySelector(format === 'mp4' ? '.btn-download-mp4' : '.btn-download');
@@ -162,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ? `${DOWNLOAD_VIDEO_API}${videoId}`
                 : `${DOWNLOAD_AUDIO_API}${videoId}`;
             
-            // Abre a URL em uma nova aba. O navegador cuidará do redirecionamento e do download.
+            // Abre a URL em uma nova aba.
             window.open(endpoint, '_blank');
             
             // Feedback de sucesso
@@ -201,14 +205,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 videoId = urlParams.get('v');
             } else if (videoUrl.includes('youtu.be/')) {
                 videoId = videoUrl.split('youtu.be/')[1].split(/[\?&]/)[0];
+            } else if (videoUrl.includes('youtube.com/embed/')) {
+                 videoId = videoUrl.split('/embed/')[1].split('?')[0];
             }
             
+            if (!videoId) {
+                // Tenta extrair o ID da API (ex: "e_AZJzYe7CU") se a URL for só o ID
+                const match = videoUrl.match(/[a-zA-Z0-9_-]{11}/);
+                if (match) videoId = match[0];
+            }
+
             if (!videoId) {
                 console.error('Não foi possível extrair o videoId do URL:', videoUrl);
                 return;
             }
 
-            youtubePlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`; // Adicionado autoplay
+            youtubePlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
             videoPlayerContainer.classList.remove('hidden');
             
             // Rolar para o player
@@ -245,8 +257,7 @@ document.addEventListener('DOMContentLoaded', function() {
      * Calcula e exibe a duração total
      */
     function showTotalDuration(videos) {
-        // Usar a função parseDurationString no 'video.duration'
-        const totalSeconds = videos.reduce((sum, video) => sum + parseDurationString(video.duration), 0);
+        const totalSeconds = videos.reduce((sum, video) => sum + parseDurationString(video.duracao), 0);
         
         if (totalSeconds === 0) return;
 
@@ -259,13 +270,13 @@ document.addEventListener('DOMContentLoaded', function() {
             durationText += `${minutes} minuto${minutes > 1 ? 's' : ''}`;
         }
         
-        if (durationText === '') { // Caso de menos de 1 minuto
+        if (durationText === '') {
              const seconds = totalSeconds % 60;
-             durationText = `${seconds} segundo${seconds > 1 ? 's' : ''}`;
+             durationText = `${seconds} segundo${seconds === 1 ? '' : 's'}`;
         }
 
         if (durationText) {
-            totalDuration.innerHTML = `<p><i class="fas fa-clock mr-2"></i> Duração total aprox: ${durationText}</p>`;
+            totalDuration.innerHTML = `<p><i class="fas fa-clock mr-2"></i> Duração: ${durationText}</p>`;
             totalDuration.classList.remove('hidden');
         }
     }
@@ -275,7 +286,6 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function formatNumber(num) {
         if (typeof num === 'string') {
-             // Remove vírgulas se a API retornar "1,234,567"
              num = parseInt(num.replace(/,/g, ''), 10);
         }
         if (isNaN(num)) return '0';
@@ -305,14 +315,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clique no botão de download (MP3 ou MP4)
         const downloadButton = e.target.closest('.btn-download, .btn-download-mp4');
         if (downloadButton) {
-            // Pegar o 'data-video-id' em vez de 'data-video-title'
+            // Pegar o 'data-video-id'
             const videoId = downloadButton.getAttribute('data-video-id');
             const format = downloadButton.getAttribute('data-format');
             const card = downloadButton.closest('.card');
             if (videoId && format && card) {
                 downloadFile(videoId, card, format);
             }
-            return; // Importante para não disparar o clique da thumbnail
+            return;
         }
 
         // Clique na thumbnail para tocar o vídeo

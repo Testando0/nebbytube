@@ -72,25 +72,22 @@ app.get('/api/download', async (req, res) => {
 
     
     if (format === 'mp3') {
-        // --- LÓGICA ATUALIZADA DO MP3 (2 PASSOS: JSON -> STREAM) ---
+        // --- LÓGICA DO MP3 (2 PASSOS: JSON -> STREAM) ---
         try {
-            // PASSO 1: Chamar a nova API da NexFuture para obter o link direto de download
+            // PASSO 1: Chamar a API da NexFuture para obter o link direto de download
             const jsonApiUrl = `https://api.nexfuture.com.br/api/downloads/youtube/mp3/v3?url=${encodeURIComponent(url)}`;
             
             console.log(`Buscando link de download MP3 (NexFuture JSON) para: ${url}`);
             const jsonResponse = await fetch(jsonApiUrl);
 
             if (!jsonResponse.ok) {
-                // Tenta ler o erro como texto caso não seja JSON válido
                 const errorText = await jsonResponse.text();
-                throw new Error(`Erro HTTP ${jsonResponse.status} na API JSON: ${errorText.substring(0, 100)}`);
+                throw new Error(`Erro HTTP ${jsonResponse.status} na API JSON (MP3): ${errorText.substring(0, 100)}`);
             }
 
             const data = await jsonResponse.json();
             
-            // ASSUMIMOS que o link de download está em 'data.downloadLink' 
-            // ou 'data.resultado.downloadLink'. Ajuste conforme o formato real da resposta.
-            // Para maior compatibilidade, vou verificar se há um link em várias chaves comuns:
+            // Procura o link de download em locais comuns da resposta
             const downloadLink = data.downloadLink || data.resultado?.downloadLink || data.download?.downloadLink;
             
             if (!downloadLink) {
@@ -102,7 +99,7 @@ app.get('/api/download', async (req, res) => {
             const streamResponse = await fetch(downloadLink);
 
             if (!streamResponse.ok) {
-                throw new Error(`Erro HTTP ${streamResponse.status} ao fazer fetch do link de download.`);
+                throw new Error(`Erro HTTP ${streamResponse.status} ao fazer fetch do link de download (MP3).`);
             }
 
             // Faz o proxy do stream de áudio
@@ -116,24 +113,40 @@ app.get('/api/download', async (req, res) => {
         }
 
     } else {
-        // --- LÓGICA DO MP4 (Mantida, usa a kuromi ytmp4) ---
+        // --- LÓGICA ATUALIZADA DO MP4 (2 PASSOS: JSON -> STREAM via NexFuture) ---
         try {
-            const apiUrl = `https://kuromi-system-tech.onrender.com/api/ytmp4?url=${encodeURIComponent(url)}`;
+            // PASSO 1: Chamar a nova API da NexFuture para obter o link direto de download
+            const jsonApiUrl = `https://api.nexfuture.com.br/api/downloads/youtube/mp4?url=${encodeURIComponent(url)}`;
             
-            console.log(`Iniciando download MP4 (proxy) de: ${url}`);
-            const response = await fetch(apiUrl);
+            console.log(`Buscando link de download MP4 (NexFuture JSON) para: ${url}`);
+            const jsonResponse = await fetch(jsonApiUrl);
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Erro HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+            if (!jsonResponse.ok) {
+                const errorText = await jsonResponse.text();
+                throw new Error(`Erro HTTP ${jsonResponse.status} na API JSON (MP4): ${errorText.substring(0, 100)}`);
             }
 
-            console.log(`Iniciando stream proxy para MP4: ${title}`);
+            const data = await jsonResponse.json();
             
+            // Procura o link de download (mesma lógica do MP3)
+            const downloadLink = data.downloadLink || data.resultado?.downloadLink || data.download?.downloadLink;
+            
+            if (!downloadLink) {
+                 throw new Error(`Link de download MP4 não encontrado na resposta da API. Resposta: ${JSON.stringify(data).substring(0, 100)}...`);
+            }
+
+            // PASSO 2: Fazer o fetch do link direto e proxy do stream
+            console.log(`Iniciando proxy MP4 do link direto: ${downloadLink}`);
+            const streamResponse = await fetch(downloadLink);
+
+            if (!streamResponse.ok) {
+                throw new Error(`Erro HTTP ${streamResponse.status} ao fazer fetch do link de download (MP4).`);
+            }
+
+            // Faz o proxy do stream de vídeo
             res.setHeader('Content-Type', 'video/mp4');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-            
-            response.body.pipe(res);
+            streamResponse.body.pipe(res);
 
         } catch (error) {
             console.error(`Erro no download MP4:`, error.message);

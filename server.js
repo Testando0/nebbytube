@@ -10,6 +10,8 @@ const port = 3000;
 app.use(cors());
 
 // Servir arquivos estáticos da pasta 'public'
+// Assumindo que seus arquivos index.html e script.js estão em 'public'
+// Se estiverem na raiz, mude para: app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Endpoint para buscar músicas/vídeos no YouTube usando a API NexFuture
@@ -59,38 +61,54 @@ app.get('/api/search', async (req, res) => {
     }
 });
 
-// Endpoint para baixar MP3 usando a API Kuromi-System-Tech
+// Endpoint para baixar MP3 ou MP4 usando a API Kuromi-System-Tech
 app.get('/api/download', async (req, res) => {
-    const songTitle = req.query.title; // Espera o título da música do cliente
-    if (!songTitle) {
+    const { title, format } = req.query; // Pega o título e o formato
+
+    if (!title) {
         return res.status(400).json({ error: 'Parâmetro "title" é obrigatório para o download.' });
+    }
+    if (!format || (format !== 'mp3' && format !== 'mp4')) {
+        return res.status(400).json({ error: 'Parâmetro "format" inválido. Deve ser "mp3" ou "mp4".' });
+    }
+
+    let apiUrl = '';
+    let contentType = '';
+    const fileExtension = format;
+
+    if (format === 'mp3') {
+        apiUrl = `https://kuromi-system-tech.onrender.com/api/play?name=${encodeURIComponent(title)}`;
+        contentType = 'audio/mpeg';
+    } else { // format === 'mp4'
+        apiUrl = `https://kuromi-system-tech.onrender.com/api/playvideo?name=${encodeURIComponent(title)}`;
+        contentType = 'video/mp4';
     }
 
     try {
-        // Faz a requisição para a API de download MP3
-        const response = await fetch(`https://kuromi-system-tech.onrender.com/api/play?name=${encodeURIComponent(songTitle)}`);
+        // Faz a requisição para a API de download correta
+        const response = await fetch(apiUrl);
 
         if (!response.ok) {
             // Lança um erro se a resposta da API não for bem-sucedida (status 2xx)
             throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
         }
 
-        // Assume que a API de download MP3 retorna o fluxo de áudio diretamente.
-        // Configura os cabeçalhos para indicar um download de arquivo MP3.
-        const filename = `${songTitle.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`; // Gera um nome de arquivo seguro
-        res.setHeader('Content-Type', 'audio/mpeg');
+        // Configura os cabeçalhos para indicar um download de arquivo
+        const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.${fileExtension}`;
+        res.setHeader('Content-Type', contentType);
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
         // Redireciona o fluxo de dados da resposta da API diretamente para o cliente
         response.body.pipe(res);
 
     } catch (error) {
-        console.error('Erro no download MP3:', error.message);
-        res.status(500).json({ error: error.message || 'Erro ao gerar ou baixar o MP3.' });
+        console.error(`Erro no download ${format}:`, error.message);
+        res.status(500).json({ error: error.message || `Erro ao gerar ou baixar o ${format}.` });
     }
 });
 
-// Rota padrão para servir o arquivo 'index.html' quando a raiz do site é acessada
+// Rota padrão para servir o arquivo 'index.html'
+// Ajuste 'public' se seus arquivos estiverem na raiz
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

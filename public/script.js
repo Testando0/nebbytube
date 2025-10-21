@@ -123,7 +123,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 card.className = 'card bg-gray-800 rounded-lg overflow-hidden shadow-lg';
                 
                 // Thumbnail com duração
-                // Usa video.duration (ex: "5:04")
                 const thumbnailHtml = `
                     <div class="relative">
                         <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-48 object-cover cursor-pointer video-thumbnail" data-video-url="${video.url}">
@@ -134,7 +133,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 
                 // Informações do vídeo
-                // Usa video.title, video.channel, video.views
                 const infoHtml = `
                     <div class="p-4">
                         <a href="${video.url}" target="_blank" class="text-white font-semibold hover:text-nebula-purple transition duration-300 line-clamp-2">
@@ -150,13 +148,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 
                 // Botões de download (MP3 e MP4)
-                // Usa data-video-title para o /api/download
+                // *** ATUALIZADO: Adicionado data-video-url em ambos os botões ***
                 const downloadHtml = `
                     <div class="px-4 pb-4">
                         <div class="download-buttons flex flex-col gap-2">
                             <button 
                                 class="btn-download download-button w-full py-2 text-white rounded-lg font-medium flex items-center justify-center"
                                 data-video-title="${video.title}"
+                                data-video-url="${video.url}" 
                                 data-format="mp3"
                                 aria-label="Baixar MP3 de ${video.title}"
                             >
@@ -166,6 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <button 
                                 class="btn-download-mp4 download-button w-full py-2 text-white rounded-lg font-medium flex items-center justify-center"
                                 data-video-title="${video.title}"
+                                data-video-url="${video.url}"
                                 data-format="mp4"
                                 aria-label="Baixar MP4 de ${video.title}"
                             >
@@ -193,10 +193,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Baixar arquivo (MP3 ou MP4)
-    // Esta função chama o /api/download do seu server.js
-    async function downloadFile(videoTitle, downloadBtn, format) {
-        // 'downloadBtn' é o elemento do botão que foi clicado
-        
+    // *** ATUALIZADO: Assinatura da função mudou para aceitar videoUrl ***
+    async function downloadFile(videoTitle, videoUrl, downloadBtn, format) {
         if (format !== 'mp3' && format !== 'mp4') {
             console.error('Formato de download não suportado:', format);
             return;
@@ -211,14 +209,14 @@ document.addEventListener('DOMContentLoaded', function() {
         errorDiv.classList.add('hidden');
         
         try {
-            // O endpoint /api/download espera 'title' e 'format'
-            const endpoint = `/api/download?title=${encodeURIComponent(videoTitle)}&format=${encodeURIComponent(format)}`;
+            // *** ATUALIZADO: Envia 'title', 'url' e 'format' para o servidor ***
+            const endpoint = `/api/download?title=${encodeURIComponent(videoTitle)}&url=${encodeURIComponent(videoUrl)}&format=${encodeURIComponent(format)}`;
             
             // Cria um link temporário
             const a = document.createElement('a');
             a.href = endpoint;
             
-            // Define o nome do arquivo com a extensão correta
+            // O nome do arquivo ainda usa o 'videoTitle' para ser amigável
             a.download = `${videoTitle.replace(/[^a-zA-Z0-9]/g, '_')}.${format}`;
             a.style.display = 'none';
             
@@ -264,14 +262,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Delegar eventos de clique no container de resultados
     resultsContainer.addEventListener('click', (e) => {
         // Evento de Download (MP3 ou MP4)
-        const button = e.target.closest('.download-button'); // Seletor comum
+        const button = e.target.closest('.download-button'); 
         if (button) {
             const videoTitle = button.getAttribute('data-video-title');
+            // *** ATUALIZADO: Captura o data-video-url ***
+            const videoUrl = button.getAttribute('data-video-url');
             const format = button.getAttribute('data-format');
-            if (videoTitle && format) {
-                downloadFile(videoTitle, button, format); // Passa o próprio botão
+            
+            if (videoTitle && videoUrl && format) {
+                // *** ATUALIZADO: Passa videoUrl para a função ***
+                downloadFile(videoTitle, videoUrl, button, format);
             }
-            return; // Impede que o clique no botão ative o clique na thumbnail
+            return; 
         }
 
         // Evento de clique nas thumbnails

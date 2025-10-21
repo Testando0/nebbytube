@@ -11,58 +11,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mostrar mensagem inicial
     statusMessage.classList.remove('hidden');
 
-    // Carregar vídeo no iframe usando a URL embed do YouTube e rolar para o reprodutor
+    // ##################################################################
+    // ## INÍCIO DA REMOÇÃO ##
+    // ## A função playVideo inteira foi removida porque o 
+    // ## HTML do player ('video-player' e 'youtube-player') não existe mais.
+    // ##################################################################
+    /*
     function playVideo(videoUrl) {
-        console.log('URL recebido:', videoUrl); // Debug: verificar URL
-        
-        try {
-            let videoId = null;
-            // Extrair videoId de diferentes formatos de URL
-            if (videoUrl.includes('youtube.com/watch')) {
-                const urlParams = new URLSearchParams(new URL(videoUrl).search);
-                videoId = urlParams.get('v');
-            } else if (videoUrl.includes('youtu.be/')) {
-                videoId = videoUrl.split('youtu.be/')[1].split(/[\?&]/)[0];
-            } else if (videoUrl.includes('youtube.com/embed/')) {
-                videoId = videoUrl.split('youtube.com/embed/')[1].split(/[\?&]/)[0];
-            } else {
-                // Tentar extrair ID de 11 caracteres alfanuméricos
-                const match = videoUrl.match(/[a-zA-Z0-9_-]{11}/);
-                if (match) videoId = match[0];
-            }
-            
-            console.log('Video ID extraído:', videoId); // Debug: verificar ID
-            
-            if (!videoId) {
-                console.error('Erro: Não foi possível extrair o videoId do URL:', videoUrl);
-                return;
-            }
-            
-            const player = document.getElementById('youtube-player');
-            if (!player) {
-                console.error('Erro: Elemento #youtube-player não encontrado');
-                return;
-            }
-            
-            // Usar a URL de incorporação sem autoplay
-            player.src = `https://www.youtube.com/embed/${videoId}`;
-            console.log('Iframe src atualizado:', player.src); // Debug: verificar src
-            
-            const videoPlayer = document.getElementById('video-player');
-            if (!videoPlayer) {
-                console.error('Erro: Elemento #video-player não encontrado');
-                return;
-            }
-            
-            // Tentar scroll com fallback
-            videoPlayer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            const topOffset = videoPlayer.getBoundingClientRect().top + window.pageYOffset - 50;
-            window.scrollTo({ top: topOffset, behavior: 'smooth' });
-            console.log('Tentando rolar para video-player, offset:', topOffset); // Debug: verificar scroll
-        } catch (error) {
-            console.error('Erro ao carregar vídeo:', error.message);
-        }
+        // ... todo o conteúdo desta função foi removido ...
     }   
+    */
+    // ##################################################################
+    // ## FIM DA REMOÇÃO ##
+    // ##################################################################
     
     // Formatar números (ex: 66043268 → 66.0M)
     function formatNumber(num) {
@@ -85,10 +46,21 @@ document.addEventListener('DOMContentLoaded', function() {
         searchBtn.disabled = true;
         searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Buscando...';
         try {
-            // Limpar resultados e iframe
+            // Limpar resultados
             resultsContainer.innerHTML = '';
+            
+            // ##################################################################
+            // ## INÍCIO DA ALTERAÇÃO ##
+            // ## As linhas que limpavam o 'youtube-player' foram removidas.
+            // ##################################################################
+            /*
             const player = document.getElementById('youtube-player');
             if (player) player.src = ''; // Limpar iframe
+            */
+            // ##################################################################
+            // ## FIM DA ALTERAÇÃO ##
+            // ##################################################################
+            
             totalDuration.classList.add('hidden'); // Esconder duração total
             
             // Mostrar loading e esconder outras mensagens
@@ -106,31 +78,55 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // O server.js retorna { results: [ ... ] }
             const videos = data.results || [];
-            const videoPlayer = document.getElementById('video-player');
+            
+            // ##################################################################
+            // ## INÍCIO DA ALTERAÇÃO ##
+            // ## A variável 'videoPlayer' foi removida pois o elemento não existe.
+            // ##################################################################
+            
             if (videos.length === 0) {
                 statusMessage.classList.remove('hidden');
                 statusMessage.innerHTML = `<p class="text-gray-400">${data.message || 'Nenhum vídeo encontrado.'}</p>`;
-                videoPlayer.classList.add('hidden'); // Esconder reprodutor
+                
+                // ##################################################################
+                // ## INÍCIO DA ALTERAÇÃO ##
+                // ## A linha abaixo foi removida. Ela causava o erro
+                // ## "Cannot read properties of null (reading 'classList')"
+                // ##################################################################
+                // videoPlayer.classList.add('hidden'); // Esconder reprodutor
+                // ##################################################################
+                
                 return;
             }
             
-            // Mostrar reprodutor
-            videoPlayer.classList.remove('hidden');
+            // ##################################################################
+            // ## INÍCIO DA ALTERAÇÃO ##
+            // ## A linha abaixo foi removida. Ela também causaria o erro.
+            // ##################################################################
+            // videoPlayer.classList.remove('hidden');
+            // ##################################################################
             
             // Criar cards para cada vídeo
             videos.forEach(video => {
                 const card = document.createElement('div');
                 card.className = 'card bg-gray-800 rounded-lg overflow-hidden shadow-lg';
                 
-                // Thumbnail com duração
+                // ##################################################################
+                // ## INÍCIO DA ALTERAÇÃO ##
+                // ## Removido 'cursor-pointer' e 'video-thumbnail' da imagem,
+                // ## já que a funcionalidade de clique foi removida.
+                // ##################################################################
                 const thumbnailHtml = `
                     <div class="relative">
-                        <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-48 object-cover cursor-pointer video-thumbnail" data-video-url="${video.url}">
+                        <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-48 object-cover" data-video-url="${video.url}">
                         <span class="duration-badge absolute bottom-2 right-2 text-white text-xs px-2 py-1 rounded">
                             ${video.duration || 'N/A'}
                         </span>
                     </div>
                 `;
+                // ##################################################################
+                // ## FIM DA ALTERAÇÃO ##
+                // ##################################################################
                 
                 // Informações do vídeo
                 const infoHtml = `
@@ -148,7 +144,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 
                 // Botões de download (MP3 e MP4)
-                // *** ATUALIZADO: Adicionado data-video-url em ambos os botões ***
                 const downloadHtml = `
                     <div class="px-4 pb-4">
                         <div class="download-buttons flex flex-col gap-2">
@@ -193,7 +188,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Baixar arquivo (MP3 ou MP4)
-    // *** ATUALIZADO: Assinatura da função mudou para aceitar videoUrl ***
     async function downloadFile(videoTitle, videoUrl, downloadBtn, format) {
         if (format !== 'mp3' && format !== 'mp4') {
             console.error('Formato de download não suportado:', format);
@@ -209,14 +203,12 @@ document.addEventListener('DOMContentLoaded', function() {
         errorDiv.classList.add('hidden');
         
         try {
-            // *** ATUALIZADO: Envia 'title', 'url' e 'format' para o servidor ***
             const endpoint = `/api/download?title=${encodeURIComponent(videoTitle)}&url=${encodeURIComponent(videoUrl)}&format=${encodeURIComponent(format)}`;
             
             // Cria um link temporário
             const a = document.createElement('a');
             a.href = endpoint;
             
-            // O nome do arquivo ainda usa o 'videoTitle' para ser amigável
             a.download = `${videoTitle.replace(/[^a-zA-Z0-9]/g, '_')}.${format}`;
             a.style.display = 'none';
             
@@ -265,17 +257,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const button = e.target.closest('.download-button'); 
         if (button) {
             const videoTitle = button.getAttribute('data-video-title');
-            // *** ATUALIZADO: Captura o data-video-url ***
             const videoUrl = button.getAttribute('data-video-url');
             const format = button.getAttribute('data-format');
             
             if (videoTitle && videoUrl && format) {
-                // *** ATUALIZADO: Passa videoUrl para a função ***
                 downloadFile(videoTitle, videoUrl, button, format);
             }
             return; 
         }
 
+        // ##################################################################
+        // ## INÍCIO DA REMOÇÃO ##
+        // ## O bloco de código abaixo foi removido pois 
+        // ## 'video-thumbnail' não deve mais ser clicável 
+        // ## e a função 'playVideo' não existe mais.
+        // ##################################################################
+        /*
         // Evento de clique nas thumbnails
         const thumbnail = e.target.closest('.video-thumbnail');
         if (thumbnail) {
@@ -285,5 +282,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 playVideo(videoUrl);
             }
         }
+        */
+        // ##################################################################
+        // ## FIM DA REMOÇÃO ##
+        // ##################################################################
     });
 });

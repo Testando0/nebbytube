@@ -10,8 +10,6 @@ const port = 3000;
 app.use(cors());
 
 // Servir arquivos estáticos da pasta 'public'
-// Assumindo que seus arquivos index.html e script.js estão em 'public'
-// Se estiverem na raiz, mude para: app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Endpoint para buscar músicas/vídeos no YouTube usando a API NexFuture
@@ -61,7 +59,7 @@ app.get('/api/search', async (req, res) => {
     }
 });
 
-// Endpoint para baixar MP3 ou MP4 usando a API Kuromi-System-Tech
+// Endpoint para baixar MP3 ou MP4
 app.get('/api/download', async (req, res) => {
     const { title, format } = req.query; // Pega o título e o formato
 
@@ -72,43 +70,51 @@ app.get('/api/download', async (req, res) => {
         return res.status(400).json({ error: 'Parâmetro "format" inválido. Deve ser "mp3" ou "mp4".' });
     }
 
-    let apiUrl = '';
-    let contentType = '';
-    const fileExtension = format;
+    const encodedTitle = encodeURIComponent(title);
+    const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.${format}`;
 
     if (format === 'mp3') {
-        apiUrl = `https://kuromi-system-tech.onrender.com/api/play?name=${encodeURIComponent(title)}`;
-        contentType = 'audio/mpeg';
-    } else { // format === 'mp4'
-        apiUrl = `https://kuromi-system-tech.onrender.com/api/playvideo?name=${encodeURIComponent(title)}`;
-        contentType = 'video/mp4';
-    }
+        // --- LÓGICA DO MP3 (Proxy Stream) ---
+        // Isso parece estar funcionando, então mantemos.
+        try {
+            const apiUrl = `https://kuromi-system-tech.onrender.com/api/play?name=${encodedTitle}`;
+            const response = await fetch(apiUrl);
 
-    try {
-        // Faz a requisição para a API de download correta
-        const response = await fetch(apiUrl);
+            if (!response.ok) {
+                throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
+            }
 
-        if (!response.ok) {
-            // Lança um erro se a resposta da API não for bem-sucedida (status 2xx)
-            throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
+            // Configura os cabeçalhos para indicar um download de arquivo
+            res.setHeader('Content-Type', 'audio/mpeg');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+            // Redireciona o fluxo de dados da resposta da API diretamente para o cliente
+            response.body.pipe(res);
+
+        } catch (error) {
+            console.error(`Erro no download MP3:`, error.message);
+            res.status(500).json({ error: error.message || `Erro ao gerar ou baixar o MP3.` });
         }
+    } else {
+        // --- LÓGICA DO MP4 (Redirecionamento) ---
+        // Isso corrige o problema do MP4.
+        try {
+            // Apenas construímos a URL final da API
+            const apiUrl = `https://kuromi-system-tech.onrender.com/api/playvideo?name=${encodedTitle}`;
+            
+            // Em vez de 'fetch' e 'pipe', nós redirecionamos o navegador do usuário
+            // para a URL da API. O navegador então fará o download direto.
+            console.log(`Redirecionando MP4 para: ${apiUrl}`);
+            res.redirect(apiUrl);
 
-        // Configura os cabeçalhos para indicar um download de arquivo
-        const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.${fileExtension}`;
-        res.setHeader('Content-Type', contentType);
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-
-        // Redireciona o fluxo de dados da resposta da API diretamente para o cliente
-        response.body.pipe(res);
-
-    } catch (error) {
-        console.error(`Erro no download ${format}:`, error.message);
-        res.status(500).json({ error: error.message || `Erro ao gerar ou baixar o ${format}.` });
+        } catch (error) {
+            console.error(`Erro no redirecionamento MP4:`, error.message);
+            res.status(500).json({ error: error.message || `Erro ao processar o pedido de MP4.` });
+        }
     }
 });
 
 // Rota padrão para servir o arquivo 'index.html'
-// Ajuste 'public' se seus arquivos estiverem na raiz
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

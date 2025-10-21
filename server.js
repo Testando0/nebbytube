@@ -41,7 +41,7 @@ app.get('/api/search', async (req, res) => {
             description: data.resultado.descricao,
             views: data.resultado.views,
             duration: data.resultado.duracao,
-            url: data.resultado.url,
+            url: data.resultado.url, // Esta URL é crucial
         };
 
         res.json({ results: [videoResult] });
@@ -55,6 +55,7 @@ app.get('/api/search', async (req, res) => {
 // Endpoint para baixar MP3 ou MP4
 app.get('/api/download', async (req, res) => {
     // Pega 'title', 'url' e 'format' da query
+    // 'url' agora é a URL do YouTube vinda da pesquisa
     const { title, url, format } = req.query; 
 
     // Validação do formato
@@ -62,17 +63,30 @@ app.get('/api/download', async (req, res) => {
         return res.status(400).json({ error: 'Parâmetro "format" inválido. Deve ser "mp3" ou "mp4".' });
     }
     
-    // O título é usado para nomear o arquivo em ambos os casos
+    // O 'title' é usado apenas para nomear o arquivo
     if (!title) {
         return res.status(400).json({ error: 'Parâmetro "title" é obrigatório para nomear o arquivo.' });
     }
+    
+    // *** MUDANÇA: 'url' agora é obrigatória ***
+    // A 'url' (do vídeo específico do YouTube) é necessária 
+    // para garantir o download do item correto.
+    if (!url) {
+        return res.status(400).json({ error: 'Parâmetro "url" (do vídeo do YouTube) é obrigatório.' });
+    }
+    
     const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.${format}`;
 
     
     if (format === 'mp3') {
-        // --- LÓGICA DO MP3 (Usa 'title') ---
+        // --- LÓGICA DO MP3 (Usa 'url') ---
         try {
-            const apiUrl = `https://kuromi-system-tech.onrender.com/api/play?name=${encodeURIComponent(title)}`;
+            // *** MUDANÇA PRINCIPAL ***
+            // Passamos a 'url' do vídeo (vinda da pesquisa) para o parâmetro 'name'
+            // da API kuromi. Isso garante que ela baixe o vídeo exato.
+            const apiUrl = `https://kuromi-system-tech.onrender.com/api/play?name=${encodeURIComponent(url)}`;
+            
+            console.log(`Iniciando download MP3 (proxy) de: ${url}`);
             const response = await fetch(apiUrl);
 
             if (!response.ok) {
@@ -90,19 +104,16 @@ app.get('/api/download', async (req, res) => {
         }
 
     } else {
-        // --- LÓGICA DO MP4 (Usa 'title') ---
-        // *** ATUALIZADO: Implementado Proxy Stream (igual à referência 'play_video') ***
-        
-        // A validação de 'title' já foi feita acima.
-        
+        // --- LÓGICA DO MP4 (Usa 'url') ---
         try {
             // *** MUDANÇA PRINCIPAL ***
-            // Trocamos a API 'speedhosting' pela 'kuromi-system-tech'
-            // Trocamos o parâmetro 'url' pelo 'name' (usando a variável 'title')
-            // Esta URL agora é baseada na sua referência 'case 'play_video''
-            const apiUrl = `https://kuromi-system-tech.onrender.com/api/playvideo?name=${encodeURIComponent(title)}`;
+            // Trocamos 'title' por 'url' aqui também.
+            // A API 'playvideo' agora recebe a URL exata do vídeo 
+            // que foi retornado pela API de pesquisa.
+            const apiUrl = `https://kuromi-system-tech.onrender.com/api/playvideo?name=${encodeURIComponent(url)}`;
             
             // 1. Faz o fetch para a API de vídeo
+            console.log(`Iniciando download MP4 (proxy) de: ${url}`);
             const response = await fetch(apiUrl);
 
             if (!response.ok) {

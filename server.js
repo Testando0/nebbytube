@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const fetch = require('node-fetch'); // Certifique-se de ter 'node-fetch' instalado (npm install node-fetch)
+const fetch = require('node-fetch');
 
 const app = express();
 const port = 3000;
@@ -41,7 +41,7 @@ app.get('/api/search', async (req, res) => {
             description: data.resultado.descricao,
             views: data.resultado.views,
             duration: data.resultado.duracao,
-            url: data.resultado.url, // Esta URL é crucial
+            url: data.resultado.url, 
         };
 
         res.json({ results: [videoResult] });
@@ -54,22 +54,16 @@ app.get('/api/search', async (req, res) => {
 
 // Endpoint para baixar MP3 ou MP4
 app.get('/api/download', async (req, res) => {
-    // Pega 'title', 'url' e 'format' da query
-    // 'url' agora é a URL do YouTube vinda da pesquisa
     const { title, url, format } = req.query; 
 
-    // Validação do formato
     if (!format || (format !== 'mp3' && format !== 'mp4')) {
         return res.status(400).json({ error: 'Parâmetro "format" inválido. Deve ser "mp3" ou "mp4".' });
     }
     
-    // O 'title' é usado apenas para nomear o arquivo
     if (!title) {
         return res.status(400).json({ error: 'Parâmetro "title" é obrigatório para nomear o arquivo.' });
     }
     
-    // 'url' (do vídeo específico do YouTube) é necessária 
-    // para garantir o download do item correto.
     if (!url) {
         return res.status(400).json({ error: 'Parâmetro "url" (do vídeo do YouTube) é obrigatório.' });
     }
@@ -78,23 +72,43 @@ app.get('/api/download', async (req, res) => {
 
     
     if (format === 'mp3') {
-        // --- LÓGICA DO MP3 (Usa 'url') ---
+        // --- LÓGICA ATUALIZADA DO MP3 (2 PASSOS: JSON -> STREAM) ---
         try {
-            // Passamos a 'url' do vídeo (vinda da pesquisa) para o parâmetro 'name'
-            // da API kuromi. Isso garante que ela baixe o vídeo exato.
-            const apiUrl = `https://kuromi-system-tech.onrender.com/api/play?name=${encodeURIComponent(url)}`;
+            // PASSO 1: Chamar a nova API da NexFuture para obter o link direto de download
+            const jsonApiUrl = `https://api.nexfuture.com.br/api/downloads/youtube/mp3/v3?url=${encodeURIComponent(url)}`;
             
-            console.log(`Iniciando download MP3 (proxy) de: ${url}`);
-            const response = await fetch(apiUrl);
+            console.log(`Buscando link de download MP3 (NexFuture JSON) para: ${url}`);
+            const jsonResponse = await fetch(jsonApiUrl);
 
-            if (!response.ok) {
-                throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
+            if (!jsonResponse.ok) {
+                // Tenta ler o erro como texto caso não seja JSON válido
+                const errorText = await jsonResponse.text();
+                throw new Error(`Erro HTTP ${jsonResponse.status} na API JSON: ${errorText.substring(0, 100)}`);
+            }
+
+            const data = await jsonResponse.json();
+            
+            // ASSUMIMOS que o link de download está em 'data.downloadLink' 
+            // ou 'data.resultado.downloadLink'. Ajuste conforme o formato real da resposta.
+            // Para maior compatibilidade, vou verificar se há um link em várias chaves comuns:
+            const downloadLink = data.downloadLink || data.resultado?.downloadLink || data.download?.downloadLink;
+            
+            if (!downloadLink) {
+                 throw new Error(`Link de download MP3 não encontrado na resposta da API. Resposta: ${JSON.stringify(data).substring(0, 100)}...`);
+            }
+
+            // PASSO 2: Fazer o fetch do link direto e proxy do stream
+            console.log(`Iniciando proxy MP3 do link direto: ${downloadLink}`);
+            const streamResponse = await fetch(downloadLink);
+
+            if (!streamResponse.ok) {
+                throw new Error(`Erro HTTP ${streamResponse.status} ao fazer fetch do link de download.`);
             }
 
             // Faz o proxy do stream de áudio
             res.setHeader('Content-Type', 'audio/mpeg');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-            response.body.pipe(res);
+            streamResponse.body.pipe(res);
 
         } catch (error) {
             console.error(`Erro no download MP3:`, error.message);
@@ -102,27 +116,23 @@ app.get('/api/download', async (req, res) => {
         }
 
     } else {
-        // --- LÓGICA DO MP4 (Usa 'url') ---
+        // --- LÓGICA DO MP4 (Mantida, usa a kuromi ytmp4) ---
         try {
-            // *** MUDANÇA REALIZADA AQUI ***
-            // A API agora é 'ytmp4' e o parâmetro é 'url'.
             const apiUrl = `https://kuromi-system-tech.onrender.com/api/ytmp4?url=${encodeURIComponent(url)}`;
             
-            // 1. Faz o fetch para a API de vídeo
             console.log(`Iniciando download MP4 (proxy) de: ${url}`);
             const response = await fetch(apiUrl);
 
             if (!response.ok) {
-                throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
+                const errorText = await response.text();
+                throw new Error(`Erro HTTP ${response.status}: ${errorText.substring(0, 100)}`);
             }
 
             console.log(`Iniciando stream proxy para MP4: ${title}`);
             
-            // 2. Define os cabeçalhos para o cliente (navegador)
             res.setHeader('Content-Type', 'video/mp4');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
             
-            // 3. Envia (pipe) o stream de vídeo da API para o cliente
             response.body.pipe(res);
 
         } catch (error) {

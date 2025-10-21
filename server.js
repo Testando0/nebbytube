@@ -53,7 +53,6 @@ app.get('/api/search', async (req, res) => {
 });
 
 // Endpoint para baixar MP3 ou MP4
-// *** ATUALIZADO: Agora usa 'title' para MP3 e 'url' para MP4 ***
 app.get('/api/download', async (req, res) => {
     // Pega 'title', 'url' e 'format' da query
     const { title, url, format } = req.query; 
@@ -92,22 +91,35 @@ app.get('/api/download', async (req, res) => {
 
     } else {
         // --- LÓGICA DO MP4 (Usa 'url') ---
+        // *** ATUALIZADO: Implementado Proxy Stream (igual ao MP3) ***
+        
         // Validação específica para MP4
         if (!url) {
             return res.status(400).json({ error: 'Parâmetro "url" é obrigatório para o download de MP4.' });
         }
         
         try {
-            // *** ATUALIZADO: Usa a nova API speedhosting e o parâmetro 'url' ***
             const apiUrl = `http://speedhosting.cloud:2009/download/play-video?&url=${encodeURIComponent(url)}`;
             
-            // Usa a mesma tática de redirecionamento
-            console.log(`Redirecionando MP4 para: ${apiUrl}`);
-            res.redirect(apiUrl);
+            // 1. Faz o fetch para a API de vídeo
+            const response = await fetch(apiUrl);
+
+            if (!response.ok) {
+                throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            console.log(`Iniciando stream proxy para MP4: ${title}`);
+            
+            // 2. Define os cabeçalhos para o cliente (navegador)
+            res.setHeader('Content-Type', 'video/mp4');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            
+            // 3. Envia (pipe) o stream de vídeo da API para o cliente
+            response.body.pipe(res);
 
         } catch (error) {
-            console.error(`Erro no redirecionamento MP4:`, error.message);
-            res.status(500).json({ error: error.message || `Erro ao processar o pedido de MP4.` });
+            console.error(`Erro no download MP4:`, error.message);
+            res.status(500).json({ error: error.message || `Erro ao gerar ou baixar o MP4.` });
         }
     }
 });

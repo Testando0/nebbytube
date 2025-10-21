@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch'); // Certifique-se de ter 'node-fetch' instalado (npm install node-fetch)
 
 const app = express();
 const port = 3000;
@@ -20,7 +20,7 @@ app.get('/api/search', async (req, res) => {
     }
 
     try {
-        // Faz a requisição para a API de pesquisa do YouTube
+        // Faz a requisição para a API de pesquisa do YouTube (Exatamente a que você pediu)
         const response = await fetch(`https://api.nexfuture.com.br/api/pesquisas/youtube?query=${encodeURIComponent(query)}`);
 
         if (!response.ok) {
@@ -38,7 +38,7 @@ app.get('/api/search', async (req, res) => {
         }
 
         // A API NexFuture retorna um único objeto 'resultado'.
-        // Mapeamos para um formato consistente, incluindo campos úteis.
+        // Mapeamos para um formato que o script.js espera (baseado na resposta que você forneceu)
         const videoResult = {
             title: data.resultado.titulo,
             id: data.resultado.id,
@@ -50,7 +50,7 @@ app.get('/api/search', async (req, res) => {
             url: data.resultado.url,
         };
 
-        // Retorna o resultado dentro de um array para manter consistência com uma possível lista futura
+        // Retorna o resultado dentro de um array para manter consistência com o script.js
         res.json({ results: [videoResult] });
 
     } catch (error) {

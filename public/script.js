@@ -1,163 +1,298 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Seleciona os principais elementos da página
+document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
     const resultsContainer = document.getElementById('resultsContainer');
+    const statusMessage = document.getElementById('statusMessage');
     const loadingIndicator = document.getElementById('loadingIndicator');
     const errorMessage = document.getElementById('errorMessage');
     const errorText = document.getElementById('errorText');
-    const statusMessage = document.getElementById('statusMessage');
+    const totalDuration = document.getElementById('totalDuration');
+    
+    // Mostrar mensagem inicial
+    statusMessage.classList.remove('hidden');
 
-    // Seleciona os elementos do player de vídeo
-    const videoPlayerContainer = document.getElementById('video-player');
-    const youtubePlayer = document.getElementById('youtube-player');
+    // Carregar vídeo no iframe usando a URL embed do YouTube e rolar para o reprodutor
+    function playVideo(videoUrl) {
+        console.log('URL recebido:', videoUrl); // Debug: verificar URL
+        
+        try {
+            let videoId = null;
+            // Extrair videoId de diferentes formatos de URL
+            if (videoUrl.includes('youtube.com/watch')) {
+                const urlParams = new URLSearchParams(new URL(videoUrl).search);
+                videoId = urlParams.get('v');
+            } else if (videoUrl.includes('youtu.be/')) {
+                videoId = videoUrl.split('youtu.be/')[1].split(/[\?&]/)[0];
+            } else if (videoUrl.includes('youtube.com/embed/')) {
+                videoId = videoUrl.split('youtube.com/embed/')[1].split(/[\?&]/)[0];
+            } else {
+                // Tentar extrair ID de 11 caracteres alfanuméricos
+                const match = videoUrl.match(/[a-zA-Z0-9_-]{11}/);
+                if (match) videoId = match[0];
+            }
+            
+            console.log('Video ID extraído:', videoId); // Debug: verificar ID
+            
+            if (!videoId) {
+                console.error('Erro: Não foi possível extrair o videoId do URL:', videoUrl);
+                return;
+            }
+            
+            const player = document.getElementById('youtube-player');
+            if (!player) {
+                console.error('Erro: Elemento #youtube-player não encontrado');
+                return;
+            }
+            
+            // Usar a URL de incorporação sem autoplay
+            player.src = `https://www.youtube.com/embed/${videoId}`;
+            console.log('Iframe src atualizado:', player.src); // Debug: verificar src
+            
+            const videoPlayer = document.getElementById('video-player');
+            if (!videoPlayer) {
+                console.error('Erro: Elemento #video-player não encontrado');
+                return;
+            }
+            
+            // Tentar scroll com fallback
+            videoPlayer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const topOffset = videoPlayer.getBoundingClientRect().top + window.pageYOffset - 50;
+            window.scrollTo({ top: topOffset, behavior: 'smooth' });
+            console.log('Tentando rolar para video-player, offset:', topOffset); // Debug: verificar scroll
+        } catch (error) {
+            console.error('Erro ao carregar vídeo:', error.message);
+        }
+    }   
+    
+    // Formatar números (ex: 1309520 → 1.3M)
+    function formatNumber(num) {
+        if (!num) return '0';
+        // O servidor já pode retornar formatado (ex: "1.3M views"), 
+        // mas mantemos a função caso ele retorne um número.
+        if (typeof num === 'string' && (num.includes('M') || num.includes('K'))) {
+            return num; // Assumindo que o servidor já formatou
+        }
+        const number = parseInt(num);
+        if (isNaN(number)) return num; // Retorna o original se não for número
 
-    // Define a URL base da API
-    const API_BASE = 'https://kuromi-system-tech.onrender.com/api';
-
-    // Funções auxiliares para mostrar/esconder elementos
-    const showLoading = () => loadingIndicator.classList.remove('hidden');
-    const hideLoading = () => loadingIndicator.classList.add('hidden');
-    const showError = (message) => {
-        errorText.textContent = message;
-        errorMessage.classList.remove('hidden');
-    };
-    const hideError = () => errorMessage.classList.add('hidden');
-    const hideStatus = () => statusMessage.classList.add('hidden');
-    const showStatus = (message) => {
-        statusMessage.querySelector('p').textContent = message;
-        statusMessage.classList.remove('hidden');
+        if (number >= 1000000) return (number / 1000000).toFixed(1) + 'M';
+        if (number >= 1000) return (number / 1000).toFixed(1) + 'K';
+        return number.toString();
     }
-
-    // Função principal para realizar a busca
-    const performSearch = async () => {
-        const query = searchInput.value.trim();
-        if (!query) {
-            showError('Por favor, digite o nome da música ou vídeo.');
+    
+    // Esta função não é mais usada ativamente pois o server.js não
+    // parece fornecer a duração em segundos.
+    // function formatDuration(seconds) { ... }
+    
+    // Esta função não pode ser usada pois o server.js não
+    // fornece a duração em segundos.
+    // function showTotalDuration(videos) { ... }
+    
+   async function searchVideos(query) {
+        searchBtn.disabled = true;
+        searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Buscando...';
+        try {
+            // Limpar resultados e iframe
+            resultsContainer.innerHTML = '';
+            const player = document.getElementById('youtube-player');
+            if (player) player.src = ''; // Limpar iframe
+            totalDuration.classList.add('hidden'); // Esconder duração total
+            
+            // Mostrar loading e esconder outras mensagens
+            loadingIndicator.classList.remove('hidden');
+            statusMessage.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            
+            // Fazer requisição ao endpoint local
+            const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Erro ao buscar vídeos.');
+            }
+            
+            const videos = data.results || [];
+            const videoPlayer = document.getElementById('video-player');
+            if (videos.length === 0) {
+                statusMessage.classList.remove('hidden');
+                statusMessage.innerHTML = `<p class="text-gray-400">${data.message || 'Nenhum vídeo encontrado.'}</p>`;
+                videoPlayer.classList.add('hidden'); // Esconder reprodutor
+                return;
+            }
+            
+            // Mostrar reprodutor
+            videoPlayer.classList.remove('hidden');
+            
+            // --- CHAMADA REMOVIDA ---
+            // A função showTotalDuration foi removida porque o server.js
+            // não fornece 'video.duration.seconds'
+            // showTotalDuration(videos);
+            
+            // Criar cards para cada vídeo
+            videos.forEach(video => {
+                const card = document.createElement('div');
+                card.className = 'card bg-gray-800 rounded-lg overflow-hidden shadow-lg';
+                
+                // Thumbnail com duração
+                // ATUALIZADO: Usando 'video.duration' (string) em vez de 'video.duration.timestamp'
+                const thumbnailHtml = `
+                    <div class="relative">
+                        <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-48 object-cover cursor-pointer video-thumbnail" data-video-url="${video.url}">
+                        <span class="duration-badge absolute bottom-2 right-2 text-white text-xs px-2 py-1 rounded">
+                            ${video.duration || 'N/A'}
+                        </span>
+                    </div>
+                `;
+                
+                // Informações do vídeo
+                // ATUALIZADO: Usando 'video.channel' em vez de 'video.author.name'
+                // ATUALIZADO: Removido 'video.ago'
+                const infoHtml = `
+                    <div class="p-4">
+                        <a href="${video.url}" target="_blank" class="text-white font-semibold hover:text-nebula-purple transition duration-300 line-clamp-2">
+                            ${video.title}
+                        </a>
+                        <div class="flex items-center mt-2 text-gray-400 text-sm">
+                            <span>${video.channel || 'Desconhecido'}</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-3 text-gray-400 text-xs">
+                            <span class="views-count">${formatNumber(video.views)}</span>
+                        </div>
+                    </div>
+                `;
+                
+                // Botões de download
+                // ATUALIZADO: Botão MP4 removido (não existe no server.js)
+                // ATUALIZADO: Botão MP3 usa 'data-video-title' em vez de 'data-video-url'
+                const downloadHtml = `
+                    <div class="px-4 pb-4">
+                        <div class="download-buttons">
+                            <button 
+                                class="btn-download w-full py-2 text-white rounded-lg font-medium flex items-center justify-center"
+                                data-video-title="${video.title}"
+                                data-format="mp3"
+                                aria-label="Baixar MP3 de ${video.title}"
+                            >
+                                <i class="fas fa-download mr-2"></i>
+                                Baixar MP3
+                            </button>
+                        </div>
+                        <div class="download-error text-red-400 text-sm mt-2 hidden"></div>
+                    </div>
+                `;
+                
+                card.innerHTML = thumbnailHtml + infoHtml + downloadHtml;
+                resultsContainer.appendChild(card);
+            });
+            
+        } catch (error) {
+            console.error('Erro na busca:', error.message);
+            errorText.textContent = error.message || 'Erro ao buscar vídeos. Tente novamente.';
+            errorMessage.classList.remove('hidden');
+        } finally {
+            loadingIndicator.classList.add('hidden');
+            searchBtn.disabled = false;
+            searchBtn.innerHTML = '<i class="fas fa-search mr-2"></i> Buscar';
+        }
+    }
+    
+    // Baixar arquivo (MP3)
+    // ATUALIZADO: A função agora recebe 'videoTitle' em vez de 'videoUrl'
+    // ATUALIZADO: A lógica foi alterada para não usar 'fetch()', mas sim
+    // criar um link '<a>' e clicar nele para iniciar o download
+    // que o servidor (server.js) envia diretamente.
+    async function downloadFile(videoTitle, card, format) {
+        if (format !== 'mp3') {
+            console.error('Formato de download não suportado:', format);
             return;
         }
 
-        // Limpa a interface para a nova busca
-        showLoading();
-        hideError();
-        hideStatus();
-        resultsContainer.innerHTML = '';
-        videoPlayerContainer.classList.add('hidden'); // Esconde o player
-
+        const downloadBtn = card.querySelector('.btn-download');
+        const errorDiv = card.querySelector('.download-error');
+        const originalText = downloadBtn.innerHTML;
+        downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Iniciando...';
+        downloadBtn.disabled = true;
+        errorDiv.classList.add('hidden');
+        
         try {
-            const encodedQuery = encodeURIComponent(query);
-            // 1. Busca os vídeos na API de pesquisa
-            const response = await fetch(`${API_BASE}/pesquisayt?query=${encodedQuery}`);
+            // ATUALIZADO: O endpoint agora usa o 'title'
+            const endpoint = `/api/download?title=${encodeURIComponent(videoTitle)}`;
             
-            if (!response.ok) {
-                throw new Error(`Erro na API: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            hideLoading();
-
-            // Verifica se encontrou resultados
-            if (!data || !data.formattedVideos || data.formattedVideos.length === 0) {
-                showError('Nenhum resultado encontrado para sua busca.');
-                return;
-            }
-
-            // 2. Cria os cards para cada resultado
-            data.formattedVideos.forEach(video => {
-                const card = createVideoCard(video);
-                resultsContainer.appendChild(card);
-            });
-
+            // Cria um link temporário
+            const a = document.createElement('a');
+            a.href = endpoint;
+            
+            // O server.js já define um 'filename', mas podemos sugerir um
+            a.download = `${videoTitle.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`;
+            a.style.display = 'none';
+            
+            // Adiciona, clica e remove o link
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            // Feedback de sucesso (não podemos "aguardar" o fim do download)
+            downloadBtn.innerHTML = `<i class="fas fa-check mr-2"></i> Download iniciado!`;
+            setTimeout(() => {
+                downloadBtn.innerHTML = originalText;
+                downloadBtn.disabled = false;
+            }, 3000);
+            
         } catch (error) {
-            console.error('Erro ao buscar:', error);
-            hideLoading();
-            showError('Ocorreu um erro ao buscar. Tente novamente mais tarde.');
+            // Este erro geralmente será sobre criar o link, não sobre o download em si
+            console.error('Erro ao iniciar download:', error.message);
+            errorDiv.textContent = 'Erro ao iniciar o download.';
+            errorDiv.classList.remove('hidden');
+            downloadBtn.innerHTML = `<i class="fas fa-times mr-2"></i> Erro`;
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+                downloadBtn.innerHTML = originalText;
+                downloadBtn.disabled = false;
+            }, 3000);
         }
-    };
-
-    /**
-     * Tenta extrair o ID do vídeo do YouTube da URL da miniatura.
-     * Ex: https://i.ytimg.com/vi/[VIDEO_ID]/hqdefault.jpg
-     */
-    const extractVideoId = (thumbnailUrl) => {
-        try {
-            const match = thumbnailUrl.match(/\/vi\/([a-zA-Z0-9_-]{11})\//);
-            return match ? match[1] : null;
-        } catch (e) {
-            return null;
-        }
-    };
-
-    // Função para criar o HTML de cada card de vídeo
-    const createVideoCard = (video) => {
-        const card = document.createElement('div');
-        card.className = 'card rounded-lg overflow-hidden shadow-lg p-4 flex flex-col justify-between';
-
-        // Codifica o título para usar na URL de download
-        const encodedTitle = encodeURIComponent(video.title);
-        
-        // 2. Define a URL de download de MP3 (conforme a API fornecida)
-        const mp3Url = `${API_BASE}/play?name=${encodedTitle}`;
-        
-        // 3. (Suposição) Define a URL de MP4 baseada no padrão da API
-        //    Estou assumindo que exista um endpoint 'ytmp4'
-        const mp4Url = `${API_BASE}/ytmp4?name=${encodedTitle}`;
-
-        // Extrai o ID do vídeo para o player
-        const videoId = extractVideoId(video.thumbnail);
-
-        card.innerHTML = `
-            <div>
-                <div class="relative">
-                    <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-48 object-cover rounded-md">
-                    <span class="duration-badge absolute bottom-2 right-2 px-2 py-1 text-xs font-semibold rounded">${video.duration}</span>
-                </div>
-                <div class="py-4">
-                    <h3 class="font-bold text-lg mb-2 truncate" title="${video.title}">${video.title}</h3>
-                    <p class="text-gray-400 text-sm mb-2">${video.channel}</p>
-                    <p class="text-gray-400 text-sm views-count">${video.views}</p>
-                </div>
-            </div>
-            <div>
-                <div class="flex flex-col sm:flex-row gap-2 download-buttons">
-                    <a href="${mp3Url}" target="_blank" class="btn-download w-full text-white font-bold py-2 px-4 rounded text-center">
-                        <i class="fas fa-music mr-2"></i> Baixar MP3
-                    </a>
-                    <a href="${mp4Url}" target="_blank" class="btn-download-mp4 w-full text-white font-bold py-2 px-4 rounded text-center">
-                        <i class="fas fa-video mr-2"></i> Baixar MP4
-                    </a>
-                </div>
-                ${videoId ? `
-                <button data-videoid="${videoId}" class="watch-btn w-full mt-2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-center transition duration-300">
-                    <i class="fas fa-play mr-2"></i> Assistir
-                </button>
-                ` : ''}
-            </div>
-        `;
-
-        // Adiciona o evento de clique para o botão "Assistir"
-        const watchBtn = card.querySelector('.watch-btn');
-        if (watchBtn) {
-            watchBtn.addEventListener('click', () => {
-                const id = watchBtn.getAttribute('data-videoid');
-                youtubePlayer.src = `https://www.youtube.com/embed/${id}`;
-                videoPlayerContainer.classList.remove('hidden');
-                // Rola a página até o player
-                videoPlayerContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            });
-        }
-
-        return card;
-    };
-
-    // Adiciona os eventos de clique e "Enter"
-    searchBtn.addEventListener('click', performSearch);
-    searchInput.addEventListener('keyup', (event) => {
-        if (event.key === 'Enter') {
-            performSearch();
+    }
+    
+    // Evento de busca
+    searchBtn.addEventListener('click', () => {
+        const query = searchInput.value.trim();
+        if (query) searchVideos(query);
+    });
+    
+    // Permitir busca com Enter
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const query = searchInput.value.trim();
+            if (query) searchVideos(query);
         }
     });
+    
+    // Delegar evento de download
+    // ATUALIZADO: Procura apenas por '.btn-download'
+    // ATUALIZADO: Pega 'data-video-title' e passa para 'downloadFile'
+    resultsContainer.addEventListener('click', (e) => {
+        // Evento de Download
+        const button = e.target.closest('.btn-download');
+        if (button) {
+            const videoTitle = button.getAttribute('data-video-title');
+            const format = button.getAttribute('data-format');
+            const card = button.closest('.card');
+            if (videoTitle && format) {
+                downloadFile(videoTitle, card, format);
+            }
+            return; // Impede que o clique no botão também ative o clique na thumbnail
+        }
 
-    // Define a mensagem inicial
-    showStatus('Digite algo para buscar...');
+        // Evento de clique nas thumbnails (movido para cá)
+        const thumbnail = e.target.closest('.video-thumbnail');
+        if (thumbnail) {
+            const videoUrl = thumbnail.getAttribute('data-video-url');
+            if (videoUrl) {
+                console.log('Thumbnail clicada, URL:', videoUrl); // Debug: verificar clique
+                playVideo(videoUrl);
+            }
+        }
+    });
+    
+    // O listener de thumbnail foi movido para o listener
+    // principal de 'resultsContainer' para evitar conflitos.
 });

@@ -64,14 +64,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }   
     
-    // Formatar números (ex: 1309520 → 1.3M)
+    // Formatar números (ex: 66043268 → 66.0M)
     function formatNumber(num) {
         if (!num) return '0';
-        // O servidor já pode retornar formatado (ex: "1.3M views"), 
-        // mas mantemos a função caso ele retorne um número.
-        if (typeof num === 'string' && (num.includes('M') || num.includes('K'))) {
-            return num; // Assumindo que o servidor já formatou
+        
+        // Se já for uma string (ex: "6.6M views"), usa direto
+        if (typeof num === 'string' && isNaN(parseInt(num))) {
+            return num;
         }
+
         const number = parseInt(num);
         if (isNaN(number)) return num; // Retorna o original se não for número
 
@@ -79,14 +80,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (number >= 1000) return (number / 1000).toFixed(1) + 'K';
         return number.toString();
     }
-    
-    // Esta função não é mais usada ativamente pois o server.js não
-    // parece fornecer a duração em segundos.
-    // function formatDuration(seconds) { ... }
-    
-    // Esta função não pode ser usada pois o server.js não
-    // fornece a duração em segundos.
-    // function showTotalDuration(videos) { ... }
     
    async function searchVideos(query) {
         searchBtn.disabled = true;
@@ -103,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
             statusMessage.classList.add('hidden');
             errorMessage.classList.add('hidden');
             
-            // Fazer requisição ao endpoint local
+            // Fazer requisição ao endpoint local (/api/search)
             const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
             const data = await response.json();
             
@@ -111,6 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data.error || 'Erro ao buscar vídeos.');
             }
             
+            // O server.js retorna { results: [ ... ] }
             const videos = data.results || [];
             const videoPlayer = document.getElementById('video-player');
             if (videos.length === 0) {
@@ -123,18 +117,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // Mostrar reprodutor
             videoPlayer.classList.remove('hidden');
             
-            // --- CHAMADA REMOVIDA ---
-            // A função showTotalDuration foi removida porque o server.js
-            // não fornece 'video.duration.seconds'
-            // showTotalDuration(videos);
-            
             // Criar cards para cada vídeo
             videos.forEach(video => {
                 const card = document.createElement('div');
                 card.className = 'card bg-gray-800 rounded-lg overflow-hidden shadow-lg';
                 
                 // Thumbnail com duração
-                // ATUALIZADO: Usando 'video.duration' (string) em vez de 'video.duration.timestamp'
+                // Usa video.duration (ex: "5:04")
                 const thumbnailHtml = `
                     <div class="relative">
                         <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-48 object-cover cursor-pointer video-thumbnail" data-video-url="${video.url}">
@@ -145,8 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 
                 // Informações do vídeo
-                // ATUALIZADO: Usando 'video.channel' em vez de 'video.author.name'
-                // ATUALIZADO: Removido 'video.ago'
+                // Usa video.title, video.channel, video.views
                 const infoHtml = `
                     <div class="p-4">
                         <a href="${video.url}" target="_blank" class="text-white font-semibold hover:text-nebula-purple transition duration-300 line-clamp-2">
@@ -162,8 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 
                 // Botões de download
-                // ATUALIZADO: Botão MP4 removido (não existe no server.js)
-                // ATUALIZADO: Botão MP3 usa 'data-video-title' em vez de 'data-video-url'
+                // Usa data-video-title para o /api/download
                 const downloadHtml = `
                     <div class="px-4 pb-4">
                         <div class="download-buttons">
@@ -197,10 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Baixar arquivo (MP3)
-    // ATUALIZADO: A função agora recebe 'videoTitle' em vez de 'videoUrl'
-    // ATUALIZADO: A lógica foi alterada para não usar 'fetch()', mas sim
-    // criar um link '<a>' e clicar nele para iniciar o download
-    // que o servidor (server.js) envia diretamente.
+    // Esta função chama o /api/download do seu server.js
     async function downloadFile(videoTitle, card, format) {
         if (format !== 'mp3') {
             console.error('Formato de download não suportado:', format);
@@ -215,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
         errorDiv.classList.add('hidden');
         
         try {
-            // ATUALIZADO: O endpoint agora usa o 'title'
+            // O endpoint /api/download espera um 'title'
             const endpoint = `/api/download?title=${encodeURIComponent(videoTitle)}`;
             
             // Cria um link temporário
@@ -231,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
             a.click();
             document.body.removeChild(a);
             
-            // Feedback de sucesso (não podemos "aguardar" o fim do download)
+            // Feedback de sucesso
             downloadBtn.innerHTML = `<i class="fas fa-check mr-2"></i> Download iniciado!`;
             setTimeout(() => {
                 downloadBtn.innerHTML = originalText;
@@ -239,7 +223,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 3000);
             
         } catch (error) {
-            // Este erro geralmente será sobre criar o link, não sobre o download em si
             console.error('Erro ao iniciar download:', error.message);
             errorDiv.textContent = 'Erro ao iniciar o download.';
             errorDiv.classList.remove('hidden');
@@ -266,9 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Delegar evento de download
-    // ATUALIZADO: Procura apenas por '.btn-download'
-    // ATUALIZADO: Pega 'data-video-title' e passa para 'downloadFile'
+    // Delegar eventos de clique no container de resultados
     resultsContainer.addEventListener('click', (e) => {
         // Evento de Download
         const button = e.target.closest('.btn-download');
@@ -279,20 +260,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (videoTitle && format) {
                 downloadFile(videoTitle, card, format);
             }
-            return; // Impede que o clique no botão também ative o clique na thumbnail
+            return; // Impede que o clique no botão ative o clique na thumbnail
         }
 
-        // Evento de clique nas thumbnails (movido para cá)
+        // Evento de clique nas thumbnails
         const thumbnail = e.target.closest('.video-thumbnail');
         if (thumbnail) {
             const videoUrl = thumbnail.getAttribute('data-video-url');
             if (videoUrl) {
-                console.log('Thumbnail clicada, URL:', videoUrl); // Debug: verificar clique
+                console.log('Thumbnail clicada, URL:', videoUrl);
                 playVideo(videoUrl);
             }
         }
     });
-    
-    // O listener de thumbnail foi movido para o listener
-    // principal de 'resultsContainer' para evitar conflitos.
 });

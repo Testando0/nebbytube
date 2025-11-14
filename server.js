@@ -20,7 +20,6 @@ app.get('/api/search', async (req, res) => {
     }
 
     try {
-        // URL Atualizada
         const apiUrl = `https://kuromi-system-tech.onrender.com/api/pesquisayt?query=${encodeURIComponent(query)}`;
         const response = await fetch(apiUrl);
 
@@ -29,37 +28,22 @@ app.get('/api/search', async (req, res) => {
         }
 
         const data = await response.json();
-        console.log('Resposta da API de busca:', JSON.stringify(data, null, 2)); 
-
-        // Verifica se existem vídeos formatados na resposta
+        
         if (!data || !data.formattedVideos || !Array.isArray(data.formattedVideos) || data.formattedVideos.length === 0) {
             return res.status(200).json({ results: [], message: 'Nenhum resultado encontrado para a sua busca.' });
         }
 
-        // Mapeia e normaliza os resultados, pois a API retorna chaves mistas (Inglês/Português)
         const videoResults = data.formattedVideos.map(video => {
             return {
-                // A API alterna entre 'title' e 'título'
                 title: video.title || video.título || 'Sem Título',
-                
-                // Usa o link fornecido (geralmente vem na chave 'link')
                 url: video.link || video.url || '',
-                
-                // A API alterna entre 'thumbnail' e 'miniatura'
                 thumbnail: video.thumbnail || video.miniatura || '',
-                
-                // A API alterna entre 'channel' e 'canal'
                 channel: video.channel || video.canal || 'Desconhecido',
-                
-                // A API alterna entre 'views' e 'visualizações'
                 views: video.views || video.visualizações || 0,
-                
-                // A API alterna entre 'duration' e 'duração'
                 duration: video.duration || video.duração || 'N/A'
             };
         });
 
-        // Retorna o array de resultados formatados para o script.js
         res.json({ results: videoResults });
 
     } catch (error) {
@@ -84,53 +68,60 @@ app.get('/api/download', async (req, res) => {
         return res.status(400).json({ error: 'Parâmetro "url" (do vídeo do YouTube) é obrigatório.' });
     }
     
-    // Sanitiza o nome do arquivo
+    // Sanitiza o nome do arquivo para evitar erros no sistema de arquivos/download
     const filename = `${title.replace(/[^a-zA-Z0-9\s-_]/g, '_').replace(/\s+/g, '_')}.${format}`;
 
-    
     if (format === 'mp3') {
-        // --- LÓGICA DO MP3 ---
+        // --- LÓGICA DO MP3 (ATUALIZADA PARA API VREDEN) ---
         try {
-            // Mantendo a lógica original de download MP3 (NexFuture)
-            // Nota: Se precisar mudar a API de download também, avise. Por enquanto mantive a original.
-            const jsonApiUrl = `https://api.nexfuture.com.br/api/downloads/youtube/mp3/v3?url=${encodeURIComponent(url)}`;
+            // 1. Chama a nova API Vreden
+            const jsonApiUrl = `https://api.vreden.my.id/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=128`;
             
-            console.log(`Buscando link de download MP3 para: ${url}`);
+            console.log(`Buscando link de download MP3 (Vreden) para: ${url}`);
             const jsonResponse = await fetch(jsonApiUrl);
 
             if (!jsonResponse.ok) {
                 const errorText = await jsonResponse.text();
-                throw new Error(`Erro HTTP ${jsonResponse.status} na API JSON (MP3): ${errorText.substring(0, 100)}`);
+                throw new Error(`Erro HTTP ${jsonResponse.status} na API Vreden: ${errorText.substring(0, 100)}`);
             }
 
             const data = await jsonResponse.json();
             
-            const downloadLink = data.downloadLink || data.resultado?.downloadLink || data.download?.downloadLink;
+            // Nota: O JSON que você enviou parece estar traduzido pelo navegador.
+            // A API original geralmente retorna 'result', mas adicionei suporte a 'resultado' por segurança.
+            // Caminho: root -> result/resultado -> download -> url
+            const rootData = data.result || data.resultado;
+            const downloadUrl = rootData?.download?.url;
             
-            if (!downloadLink) {
+            if (!downloadUrl) {
+                 console.error('Resposta da API:', JSON.stringify(data));
                  throw new Error(`Link de download MP3 não encontrado na resposta da API.`);
             }
 
-            console.log(`Iniciando proxy MP3 do link direto: ${downloadLink}`);
-            const streamResponse = await fetch(downloadLink);
+            // 2. Faz o proxy do stream de áudio (Fetch no link obtido)
+            console.log(`Iniciando download do link direto: ${downloadUrl}`);
+            const streamResponse = await fetch(downloadUrl);
 
             if (!streamResponse.ok) {
-                throw new Error(`Erro HTTP ${streamResponse.status} ao fazer fetch do link de download (MP3).`);
+                throw new Error(`Erro HTTP ${streamResponse.status} ao baixar o arquivo final.`);
             }
 
+            // 3. Envia para o usuário
             res.setHeader('Content-Type', 'audio/mpeg');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
             streamResponse.body.pipe(res);
 
         } catch (error) {
             console.error(`Erro no download MP3:`, error.message);
-            res.status(500).json({ error: error.message || `Erro ao gerar ou baixar o MP3.` });
+            // Verifica se os headers já foram enviados para não quebrar o servidor
+            if (!res.headersSent) {
+                res.status(500).json({ error: error.message || `Erro ao gerar ou baixar o MP3.` });
+            }
         }
 
     } else {
-        // --- LÓGICA DO MP4 ---
+        // --- LÓGICA DO MP4 (Mantida igual, mas com proteções de erro) ---
         try {
-            // Mantendo a lógica original de download MP4 (NexFuture)
             const directStreamApiUrl = `https://api.nexfuture.com.br/api/downloads/youtube/mp4?url=${encodeURIComponent(url)}`;
             
             console.log(`Iniciando proxy MP4 direto da API: ${directStreamApiUrl}`);

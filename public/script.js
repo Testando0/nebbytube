@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (!response.ok) {
-                throw new Error(data.error || 'Erro ao buscar vídeos.');
+                throw new Error(data.error || 'Erro Ao Buscar Vídeos.');
             }
             
             // O server.js retorna { results: [ ... ] }
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (videos.length === 0) {
                 statusMessage.classList.remove('hidden');
-                statusMessage.innerHTML = `<p class="text-gray-400">${data.message || 'Nenhum vídeo encontrado.'}</p>`;
+                statusMessage.innerHTML = `<p class="text-gray-400">${data.message || 'Nenhum Vídeo Encontrado.'}</p>`;
                 
                 // ##################################################################
                 // ## INÍCIO DA ALTERAÇÃO ##
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('Erro na busca:', error.message);
-            errorText.textContent = error.message || 'Erro ao buscar vídeos. Tente novamente.';
+            errorText.textContent = error.message || 'Erro Ao Buscar Vídeos. Tente Novamente.';
             errorMessage.classList.remove('hidden');
         } finally {
             loadingIndicator.classList.add('hidden');
@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Baixar arquivo (MP3 ou MP4)
     async function downloadFile(videoTitle, videoUrl, downloadBtn, format) {
         if (format !== 'mp3' && format !== 'mp4') {
-            console.error('Formato de download não suportado:', format);
+            console.error('Formato De Download Não Suportado:', format);
             return;
         }
 
@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.removeChild(a);
             
             // Feedback de sucesso
-            downloadBtn.innerHTML = `<i class="fas fa-check mr-2"></i> Download iniciado!`;
+            downloadBtn.innerHTML = `<i class="fas fa-check mr-2"></i> Download Iniciado...`;
             setTimeout(() => {
                 downloadBtn.innerHTML = originalText;
                 downloadBtn.disabled = false;
@@ -226,7 +226,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('Erro ao iniciar download:', error.message);
-            errorDiv.textContent = 'Erro ao iniciar o download.';
+            errorDiv.textContent = 'Erro Ao Iniciar O Download.';
             errorDiv.classList.remove('hidden');
             downloadBtn.innerHTML = `<i class="fas fa-times mr-2"></i> Erro`;
             setTimeout(() => {
@@ -288,3 +288,4 @@ document.addEventListener('DOMContentLoaded', function() {
         // ##################################################################
     });
 });
+

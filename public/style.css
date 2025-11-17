@@ -55,11 +55,12 @@ body {
     content: ' visualizações';
 }
 
-/* === REGRAS NOVAS PARA O CHAPÉU DE NATAL === */
+/* === REGRAS NOVAS PARA O CHAPÉU DE NATAL (CORRIGIDAS) === */
 #santaHat {
+    position: absolute; /* PROPRIEDADE CRUCIAL ADICIONADA AQUI */
     /* Ajuste de posição para ficar acima da primeira letra (o 'R') */
-    top: -15px; /* Sobe um pouco */
-    left: -10px; /* Desloca ligeiramente para a esquerda */
+    top: -15px; 
+    left: -10px; 
     
     /* Gira para dar o efeito "meio de lado" */
     transform: rotate(-15deg); 

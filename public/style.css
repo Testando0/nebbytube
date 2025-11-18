@@ -2,7 +2,6 @@
 
 body {
     font-family: 'Poppins', sans-serif;
-    /* Usando a imagem de fundo que você forneceu: */
     background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://i.pinimg.com/736x/88/36/8a/88368aa8a46ba1986e55cb8ad8f164f7.jpg');
     background-size: cover;
     background-position: center;
@@ -54,32 +53,6 @@ body {
 .views-count::after {
     content: ' visualizações';
 }
-
-/* === REGRAS NOVAS PARA O CHAPÉU DE NATAL (CORRIGIDAS) === */
-#santaHat {
-    position: absolute; /* PROPRIEDADE CRUCIAL ADICIONADA AQUI */
-    /* Ajuste de posição para ficar acima da primeira letra (o 'R') */
-    top: -15px; 
-    left: -10px; 
-    
-    /* Gira para dar o efeito "meio de lado" */
-    transform: rotate(-15deg); 
-    
-    /* Configura o tamanho e cor do ícone do Font Awesome */
-    font-size: 2.5rem; 
-    color: #FF4136; /* Vermelho natalino */
-    z-index: 10; /* Garante que fique acima do texto */
-}
-
-/* Ajustes para telas maiores */
-@media (min-width: 768px) {
-    #santaHat {
-        top: -20px;
-        left: -15px; 
-        font-size: 3rem;
-    }
-}
-/* ======================================= */
 
 @media (max-width: 640px) {
     .views-count::after {

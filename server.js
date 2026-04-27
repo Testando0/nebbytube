@@ -12,7 +12,7 @@ app.use(cors());
 // Servir arquivos estáticos da pasta 'public'
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Endpoint para buscar músicas/vídeos no YouTube usando a API Kuromi/Redzin
+// Endpoint para buscar músicas/vídeos no YouTube usando a API Kuromi
 app.get('/api/search', async (req, res) => {
     const query = req.query.query; 
     if (!query) {
@@ -64,59 +64,44 @@ app.get('/api/download', async (req, res) => {
         return res.status(400).json({ error: 'Parâmetro "title" é obrigatório para nomear o arquivo.' });
     }
     
-    if (!url) {
-        return res.status(400).json({ error: 'Parâmetro "url" (do vídeo do YouTube) é obrigatório.' });
+    if (!url && format === 'mp4') {
+        return res.status(400).json({ error: 'Parâmetro "url" é obrigatório para baixar vídeos (mp4).' });
     }
     
     // Sanitiza o nome do arquivo
     const filename = `${title.replace(/[^a-zA-Z0-9\s-_]/g, '_').replace(/\s+/g, '_')}.${format}`;
 
     if (format === 'mp3') {
-        // --- LÓGICA DO MP3 (API VREDEN) ---
+        // --- LÓGICA DO MP3 (API KUROMI - BUSCA PELO NOME) ---
         try {
-            const jsonApiUrl = `https://api.vreden.my.id/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=128`;
+            // Usa o título da música como parâmetro de busca/download na API
+            const streamApiUrl = `https://kuromi-system-tech.onrender.com/api/play-audio?name=${encodeURIComponent(title)}`;
             
-            console.log(`Buscando link de download MP3 (Vreden) para: ${url}`);
-            const jsonResponse = await fetch(jsonApiUrl);
-
-            if (!jsonResponse.ok) {
-                const errorText = await jsonResponse.text();
-                throw new Error(`Erro HTTP ${jsonResponse.status} na API Vreden MP3: ${errorText.substring(0, 100)}`);
-            }
-
-            const data = await jsonResponse.json();
+            console.log(`Iniciando download direto do áudio (Kuromi) para o nome: "${title}"`);
             
-            // Tenta pegar 'result' ou 'resultado' para compatibilidade
-            const rootData = data.result || data.resultado;
-            const downloadUrl = rootData?.download?.url;
-            
-            if (!downloadUrl) {
-                 console.error('Resposta da API MP3:', JSON.stringify(data));
-                 throw new Error(`Link de download MP3 não encontrado na resposta da API.`);
-            }
-
-            console.log(`Iniciando download do áudio: ${downloadUrl}`);
-            const streamResponse = await fetch(downloadUrl);
+            const streamResponse = await fetch(streamApiUrl);
 
             if (!streamResponse.ok) {
-                throw new Error(`Erro HTTP ${streamResponse.status} ao baixar o arquivo de áudio.`);
+                throw new Error(`Erro HTTP ${streamResponse.status} ao processar o áudio na API Kuromi.`);
             }
 
+            // Configura os headers para forçar o download no cliente sem redirecionamento
             res.setHeader('Content-Type', 'audio/mpeg');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            
+            // Faz o stream direto do backend para o frontend
             streamResponse.body.pipe(res);
 
         } catch (error) {
             console.error(`Erro no download MP3:`, error.message);
             if (!res.headersSent) {
-                res.status(500).json({ error: error.message || `Erro ao gerar ou baixar o MP3.` });
+                res.status(500).json({ error: error.message || `Erro ao baixar o MP3.` });
             }
         }
 
     } else {
-        // --- LÓGICA DO MP4 (ATUALIZADA PARA API VREDEN) ---
+        // --- LÓGICA DO MP4 (API VREDEN - MANTÉM PELO LINK) ---
         try {
-            // 1. Chama a API Vreden solicitando vídeo quality=360
             const jsonApiUrl = `https://api.vreden.my.id/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=360`;
             
             console.log(`Buscando link de download MP4 (Vreden 360p) para: ${url}`);
@@ -129,16 +114,13 @@ app.get('/api/download', async (req, res) => {
 
             const data = await jsonResponse.json();
             
-            // Tenta pegar 'result' ou 'resultado'
             const rootData = data.result || data.resultado;
             const downloadUrl = rootData?.download?.url;
 
             if (!downloadUrl) {
-                console.error('Resposta da API MP4:', JSON.stringify(data));
                 throw new Error(`Link de download MP4 não encontrado na resposta da API.`);
             }
 
-            // 2. Faz o proxy do stream de vídeo
             console.log(`Iniciando download do vídeo: ${downloadUrl}`);
             const streamResponse = await fetch(downloadUrl);
 

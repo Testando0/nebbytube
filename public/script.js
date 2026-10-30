@@ -25,6 +25,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // ## FIM DA REMOÇÃO ##
     // ##################################################################
     
+    function escapeHtml(v) {
+        return String(v ?? '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+
     // Formatar números (ex: 66043268 → 66.0M)
     function formatNumber(num) {
         if (!num) return '0';
@@ -86,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (videos.length === 0) {
                 statusMessage.classList.remove('hidden');
-                statusMessage.innerHTML = `<p class="text-gray-400">${data.message || 'Nenhum Vídeo Encontrado.'}</p>`;
+                statusMessage.innerHTML = `<i class="fas fa-ghost"></i><p>${escapeHtml(data.message || 'Nenhum vídeo encontrado.')}</p>`;
                 
                 // ##################################################################
                 // ## INÍCIO DA ALTERAÇÃO ##
@@ -107,75 +113,50 @@ document.addEventListener('DOMContentLoaded', function() {
             // ##################################################################
             
             // Criar cards para cada vídeo
-            videos.forEach(video => {
+            videos.forEach((video, i) => {
+                const title = escapeHtml(video.title);
+                const url = escapeHtml(video.url);
                 const card = document.createElement('div');
-                card.className = 'card bg-gray-800 rounded-lg overflow-hidden shadow-lg';
-                
-                // ##################################################################
-                // ## INÍCIO DA ALTERAÇÃO ##
-                // ## Removido 'cursor-pointer' e 'video-thumbnail' da imagem,
-                // ## já que a funcionalidade de clique foi removida.
-                // ##################################################################
-                const thumbnailHtml = `
-                    <div class="relative">
-                        <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-48 object-cover" data-video-url="${video.url}">
-                        <span class="duration-badge absolute bottom-2 right-2 text-white text-xs px-2 py-1 rounded">
-                            ${video.duration || 'N/A'}
+                card.className = 'card';
+                card.style.animationDelay = `${Math.min(i, 12) * 70}ms`;
+
+                card.innerHTML = `
+                    <div class="thumb-wrap">
+                        <img src="${escapeHtml(video.thumbnail)}" alt="${title}" loading="lazy"
+                             onerror="this.style.visibility='hidden'">
+                        <span class="duration-badge">
+                            <i class="far fa-clock mr-1"></i>${escapeHtml(video.duration || 'N/A')}
                         </span>
                     </div>
-                `;
-                // ##################################################################
-                // ## FIM DA ALTERAÇÃO ##
-                // ##################################################################
-                
-                // Informações do vídeo
-                const infoHtml = `
                     <div class="p-4">
-                        <a href="${video.url}" target="_blank" class="text-white font-semibold hover:text-nebula-purple transition duration-300 line-clamp-2">
-                            ${video.title}
-                        </a>
-                        <div class="flex items-center mt-2 text-gray-400 text-sm">
-                            <span>${video.channel || 'Desconhecido'}</span>
+                        <a href="${url}" target="_blank" rel="noopener" class="card-title">${title}</a>
+                        <div class="flex items-center mt-2 text-gray-300 text-sm">
+                            <i class="fas fa-user-circle mr-2 text-nebula-purple"></i>
+                            <span>${escapeHtml(video.channel || 'Desconhecido')}</span>
                         </div>
-                        <div class="flex justify-between items-center mt-3 text-gray-400 text-xs">
-                            <span class="views-count">${formatNumber(video.views)}</span>
+                        <div class="flex justify-between items-center mt-2 text-gray-400 text-xs">
+                            <span><i class="far fa-eye mr-1"></i><span class="views-count">${escapeHtml(formatNumber(video.views))}</span></span>
                         </div>
                     </div>
-                `;
-                
-                // Botões de download (MP3 e MP4)
-                const downloadHtml = `
                     <div class="px-4 pb-4">
                         <div class="download-buttons flex flex-col gap-2">
-                            <button 
-                                class="btn-download download-button w-full py-2 text-white rounded-lg font-medium flex items-center justify-center"
-                                data-video-title="${video.title}"
-                                data-video-url="${video.url}" 
-                                data-format="mp3"
-                                aria-label="Baixar MP3 de ${video.title}"
-                            >
-                                <i class="fas fa-download mr-2"></i>
-                                Baixar MP3
+                            <button class="btn-download download-button w-full py-2.5 text-white rounded-xl font-medium flex items-center justify-center"
+                                data-video-title="${title}" data-video-url="${url}" data-format="mp3"
+                                aria-label="Baixar MP3 de ${title}">
+                                <i class="fas fa-music mr-2"></i> Baixar MP3
                             </button>
-                            <button 
-                                class="btn-download-mp4 download-button w-full py-2 text-white rounded-lg font-medium flex items-center justify-center"
-                                data-video-title="${video.title}"
-                                data-video-url="${video.url}"
-                                data-format="mp4"
-                                aria-label="Baixar MP4 de ${video.title}"
-                            >
-                                <i class="fas fa-video mr-2"></i>
-                                Baixar MP4
+                            <button class="btn-download-mp4 download-button w-full py-2.5 text-white rounded-xl font-medium flex items-center justify-center"
+                                data-video-title="${title}" data-video-url="${url}" data-format="mp4"
+                                aria-label="Baixar MP4 de ${title}">
+                                <i class="fas fa-video mr-2"></i> Baixar MP4
                             </button>
                         </div>
                         <div class="download-error text-red-400 text-sm mt-2 hidden"></div>
                     </div>
                 `;
-                
-                card.innerHTML = thumbnailHtml + infoHtml + downloadHtml;
                 resultsContainer.appendChild(card);
             });
-            
+
         } catch (error) {
             console.error('Erro na busca:', error.message);
             errorText.textContent = error.message || 'Erro Ao Buscar Vídeos. Tente Novamente.';
@@ -288,4 +269,3 @@ document.addEventListener('DOMContentLoaded', function() {
         // ##################################################################
     });
 });
-

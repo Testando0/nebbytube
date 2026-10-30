@@ -100,22 +100,25 @@ app.get('/api/download', async (req, res) => {
         }
 
     } else {
-        // --- LÓGICA DO MP4 (API VREDEN - MANTÉM PELO LINK) ---
+        // --- LÓGICA DO MP4 (API ZONE - MANTÉM PELO LINK) ---
         try {
-            const jsonApiUrl = `https://api.vreden.my.id/api/v1/download/youtube/video?url=${encodeURIComponent(url)}&quality=360`;
-            
-            console.log(`Buscando link de download MP4 (Vreden 360p) para: ${url}`);
+            const jsonApiUrl = `https://zone.api.br/api/ytmp4?text=${encodeURIComponent(url)}`;
+
+            console.log(`Buscando link de download MP4 (Zone) para: ${url}`);
             const jsonResponse = await fetch(jsonApiUrl);
 
             if (!jsonResponse.ok) {
-                const errorText = await jsonResponse.text(); 
-                throw new Error(`Erro HTTP ${jsonResponse.status} na API Vreden MP4: ${errorText.substring(0, 150)}`);
+                const errorText = await jsonResponse.text();
+                throw new Error(`Erro HTTP ${jsonResponse.status} na API MP4: ${errorText.substring(0, 150)}`);
             }
 
             const data = await jsonResponse.json();
-            
-            const rootData = data.result || data.resultado;
-            const downloadUrl = rootData?.download?.url;
+
+            if (data.status === false) {
+                throw new Error('A API de MP4 não conseguiu processar este vídeo.');
+            }
+
+            const downloadUrl = data.result?.download;
 
             if (!downloadUrl) {
                 throw new Error(`Link de download MP4 não encontrado na resposta da API.`);

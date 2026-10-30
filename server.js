@@ -1,10 +1,10 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const fetch = require('node-fetch');
+const { Readable } = require('stream');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // Configurar CORS para permitir requisições de diferentes origens
 app.use(cors());
@@ -90,7 +90,7 @@ app.get('/api/download', async (req, res) => {
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
             
             // Faz o stream direto do backend para o frontend
-            streamResponse.body.pipe(res);
+            Readable.fromWeb(streamResponse.body).pipe(res);
 
         } catch (error) {
             console.error(`Erro no download MP3:`, error.message);
@@ -130,7 +130,7 @@ app.get('/api/download', async (req, res) => {
 
             res.setHeader('Content-Type', 'video/mp4');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-            streamResponse.body.pipe(res);
+            Readable.fromWeb(streamResponse.body).pipe(res);
 
         } catch (error) {
             console.error(`Erro no download MP4:`, error.message);
@@ -146,7 +146,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Iniciar o servidor na porta especificada
-app.listen(port, () => {
-    console.log(`Servidor rodando em http://localhost:${port}`);
-});
+// Localmente inicia o servidor; no Vercel apenas exporta o app (serverless)
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Servidor rodando em http://localhost:${port}`);
+    });
+}
+
+module.exports = app;
